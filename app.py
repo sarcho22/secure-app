@@ -10,3 +10,16 @@ def index():
 
 if __name__ == '__main__':
     app.run(debug=True)
+
+
+
+# @app.after_request
+# def set_headers(response):
+#     from services.security_headers import apply_security_headers
+#     return apply_security_headers(response)
+
+
+# keep route decorators, @app.before_request, @app.after_request
+# routes should import from services:
+# from services.user_manager import register_user
+# from services.session_manager import SessionManager
