@@ -26,6 +26,8 @@ def register_user(username, email, password):
     if not validate_email(email):
         return {"error": "Invalid email"}
     
+    # make sure not duplicate username & email, make sure confirmation password matches
+    
     # Hash password
     salt = bcrypt.gensalt(rounds=12)
     hashed = bcrypt.hashpw(password.encode('utf-8'), salt)

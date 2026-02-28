@@ -14,18 +14,37 @@ from werkzeug.utils import secure_filename
 
 def validate_username(username):
     # 3-20 chars, alphanumeric + underscore
-    # check for duplicate username
-    return
+    # note that spaces are invalid here! will not strip.
+    if 3 <= len(username) <= 20:
+        pattern = re.compile(r'[a-zA-Z0-9_]+')
+        if pattern.fullmatch(username):
+            return True
+    return False
 
 def validate_password_strength(password):
     # minimum 12 chars
     # 1 uppercase, 1 lowercase, 1 num, 1 special char (!@#$%^&*)
-    
-    return
+    if len(password) < 12:
+        return False
+    if not re.fullmatch(r'[a-zA-Z0-9!@#$%^&*]+', password):
+        return False
+    if not re.search(r'[a-z]', password):
+        return False
+    if not re.search(r'[A-Z]', password):
+        return False
+    if not re.search(r'[0-9]', password):
+        return False
+    if not re.search(r'[!@#$%^&*]', password):
+        return False
+    return True
 
 def validate_email(email):
     # email FORMAT
     # check for duplicate email
+    pattern = re.compile(r'[a-zA-Z0-9]+([._%+-][a-zA-Z0-9]+)*@' # local part cant begin/end with special char
+                         r'[a-zA-Z0-9]+([\-][a-zA-Z0-9]+)*' # domain can have hyphen
+                         r'(\.[a-zA-Z0-9]+([\-][a-zA-Z0-9]+)*)*' # subdomain
+                         r'\.[a-zA-Z]{2,}') # tld at least two chars
     return
 
 def sanitize_input(user_input):

@@ -11,7 +11,7 @@ def index():
 if __name__ == '__main__':
     app.run(debug=True)
 
-
+# make sure password == confirmation for register
 
 # @app.after_request
 # def set_headers(response):
