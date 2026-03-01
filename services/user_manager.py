@@ -26,7 +26,11 @@ def register_user(username, email, password):
     if not validate_email(email):
         return {"error": "Invalid email"}
     
+    if username_exists(username):
+        return {"error": "Username already exists"}
     
+    if email_exists(username):
+        return {"error": "Email already associated with an account"}
 
     
     # Hash password
@@ -63,3 +67,10 @@ def username_exists(username):
         if user['username'] == username:
             return True
     return False    
+
+def email_exists(email):
+    user_data = load_json(config.USERS_FILE)
+    for user in user_data.get("users", []):
+        if user['email'] == email:
+            return True
+    return False
