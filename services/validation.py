@@ -45,7 +45,9 @@ def validate_email(email):
                          r'[a-zA-Z0-9]+([\-][a-zA-Z0-9]+)*' # domain can have hyphen
                          r'(\.[a-zA-Z0-9]+([\-][a-zA-Z0-9]+)*)*' # subdomain
                          r'\.[a-zA-Z]{2,}') # tld at least two chars
-    return
+    if re.fullmatch(pattern, email):
+        return True
+    return False
 
 def sanitize_input(user_input):
     """Escape HTML special characters"""

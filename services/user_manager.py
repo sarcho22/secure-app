@@ -7,7 +7,7 @@ import bcrypt
 import time
 
 from services.validation import validate_username, validate_password_strength, validate_email
-from services.storage import save_json
+from services.storage import save_json, load_json
 import config
 
 def register_user(username, email, password):
@@ -26,7 +26,8 @@ def register_user(username, email, password):
     if not validate_email(email):
         return {"error": "Invalid email"}
     
-    # make sure not duplicate username & email, make sure confirmation password matches
+    
+
     
     # Hash password
     salt = bcrypt.gensalt(rounds=12)
@@ -54,3 +55,11 @@ def authenticate_user(username, password):
     - Return user if valid
     """
     pass
+
+
+def username_exists(username):
+    user_data = load_json(config.USERS_FILE)
+    for user in user_data.get("users", []):
+        if user['username'] == username:
+            return True
+    return False    
