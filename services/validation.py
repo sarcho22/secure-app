@@ -50,7 +50,7 @@ def validate_email(email):
     return False
 
 def sanitize_input(user_input):
-    """Escape HTML special characters"""
+    # Escape HTML special characters
     return html.escape(user_input)
 
 def sanitize_output(data):
@@ -60,9 +60,22 @@ def sanitize_output(data):
     return data
 
 def safe_filename(filename):
+    # remove path traversal attempts
+    filename = os.path.basename(filename)
+
+    # allow only alphanumeric, dash, underscore, dot
+    if not re.match(r'^[\w\-\.]', filename):
+        raise ValueError("Invalid filename")
     return filename
 
 def safe_file_path(user_path, base_dir):
+    # secure the filename
+    filename = safe_filename(user_path)
 
-    full_path = "insert code"
+    # construct full path
+    full_path = os.path.join(base_dir, filename)
+
+    if not os.path.abspath(full_path).startswith(os.path.abspath(base_dir)):
+        raise ValueError("Path traversal detected")
+    
     return full_path

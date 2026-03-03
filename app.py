@@ -11,7 +11,17 @@ def index():
 if __name__ == '__main__':
     app.run(debug=True)
 
+@app.route('/login', methods=['POST'])
+def login():
+    # auth user
+
+    # create session
+
+    return response
+
 # make sure password == confirmation for register
+
+
 
 # @app.after_request
 # def set_headers(response):
