@@ -1,5 +1,6 @@
-from flask import Flask
+from flask import Flask, render_template
 import config
+import services
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = config.SECRET_KEY
@@ -18,6 +19,12 @@ def login():
     # create session
 
     return response
+
+@app.route('/admin/dashboard')
+@services.authz.require_auth
+@services.authz.require_role('admin')
+def admin_dashboard():
+    return render_template('admin.html')
 
 # make sure password == confirmation for register
 

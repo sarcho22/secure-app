@@ -2,7 +2,7 @@
 Authorization decorators and role enforcement.
 """
 
-# from functools import wraps
+from functools import wraps
 
 
 def require_auth(f):
