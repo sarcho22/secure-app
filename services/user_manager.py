@@ -58,15 +58,24 @@ def authenticate_user(username, password):
     - never store plaintext passwords
     - Return user if valid
     """
-    pass
+    if not username_exists(username):
+        return False
+    user = get_user_from_username(username)
+    if bcrypt.checkpw(password.encode('utf-8'), user['password_hash'].encode('utf-8')):
+        return user
+    return False
 
-
-def username_exists(username):
+def get_user_from_username(username):
     user_data = load_json(config.USERS_FILE)
     for user in user_data.get("users", []):
         if user['username'] == username:
-            return True
-    return False    
+            return user
+    return {}
+
+def username_exists(username):
+    if get_user_from_username(username) != {}:
+        return True   
+    return False 
 
 def email_exists(email):
     user_data = load_json(config.USERS_FILE)
