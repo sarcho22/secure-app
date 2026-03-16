@@ -5,6 +5,7 @@ Handles session creation, validation, and expiration.
 import secrets
 import time
 import json
+
 # from services.storage import load_json, save_json
 
 
@@ -19,18 +20,47 @@ class SessionManager:
         - Generate session ID
         - Store in sessions.json
         """
-        pass
+        token = secrets.token_urlsafe(32)
+
+        session = {
+            'token': token,
+            'user_id': user_id,
+            'created_at': time.time(),
+            'last_activity': time.time(),
+            'ip_address': request.remote_addr,
+            'user_agent': request.headers.get('User-Agent')
+        }
+
+        sessions = self.load_sessions()
+        sessions[token] = session
+        self.save_sessions(sessions)
+
+        return token
 
     def validate_session(self, token):
         """
-        Paste session validation logic here.
         - Check expiration
         - Return associated user
         """
-        pass
+        sessions = self.load_sessions()
+
+        if token not in sessions:
+            return None
+        
+        session = sessions[token]
+        if time.time() - session['last_activity'] > self.timeout:
+            self.destroy_session(token)
+            return None
+        
+        session['last_activity'] = time.time()
+        sessions[token] = session
+        self.save_sessions(sessions)
+
+        return sessions
+
 
     def destroy_session(self, token):
-        """
-        Paste session invalidation logic here.
-        """
-        pass
+       sessions = self.load_sessions()
+       if token in sessions:
+           del sessions[token]
+           self.save_sesions(sessions)
