@@ -3,6 +3,7 @@ import config
 
 from services.user_manager import register_user, authenticate_user
 from services.session_manager import SessionManager
+from services.document_manager import DocumentManager
 from services.authz import require_auth, require_role, get_current_user
 # from services.security_headers import apply_security_headers
 
@@ -10,7 +11,7 @@ app = Flask(__name__)
 app.config["SECRET_KEY"] = config.SECRET_KEY
 
 session_manager = SessionManager()
-
+document_manager = DocumentManager()
 
 @app.route("/register", methods=["POST"])
 def register():
@@ -89,6 +90,63 @@ def me():
         "role": user["role"]
     })
 
+@app.route("/upload", methods=["POST"])
+@require_auth
+def upload():
+    data = request.get_json(silent=True) or request.form
+
+    filename = data.get("filename", "").strip()
+    content = data.get("content", "")
+
+    if not filename:
+        return jsonify({"error": "Filename is required"}), 400
+
+    user = get_current_user()
+    result = document_manager.upload_document(user["username"], filename, content)
+
+    if "error" in result:
+        return jsonify(result), 400
+
+    return jsonify(result), 201
+
+
+@app.route("/documents", methods=["GET"])
+@require_auth
+def list_documents():
+    user = get_current_user()
+    documents = document_manager.get_user_documents(user["username"])
+
+    return jsonify({
+        "documents": documents
+    })
+
+
+@app.route("/download/<doc_id>", methods=["GET"])
+@require_auth
+def download(doc_id):
+    user = get_current_user()
+    result = document_manager.download_document(user["username"], doc_id)
+
+    if "error" in result:
+        if result["error"] == "Document not found":
+            return jsonify(result), 404
+        return jsonify(result), 403
+
+    return jsonify(result), 200
+
+
+@app.route("/documents/<doc_id>", methods=["DELETE"])
+@require_auth
+def delete_document(doc_id):
+    user = get_current_user()
+    result = document_manager.delete_document(user["username"], doc_id)
+
+    if "error" in result:
+        if result["error"] == "Document not found":
+            return jsonify(result), 404
+        return jsonify(result), 403
+
+    return jsonify(result), 200
 
 @app.route("/admin/dashboard")
 @require_auth
