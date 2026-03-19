@@ -1,42 +1,106 @@
-from flask import Flask, render_template
+from flask import Flask, request, jsonify, make_response, render_template
 import config
-import services
+
+from services.user_manager import register_user, authenticate_user
+from services.session_manager import SessionManager
+from services.authz import require_auth, require_role, get_current_user
+# from services.security_headers import apply_security_headers
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = config.SECRET_KEY
 
-@app.route('/')
-def index():
-    return 'Hello, Flask!'
+session_manager = SessionManager()
 
-if __name__ == '__main__':
-    app.run(debug=True)
 
-@app.route('/login', methods=['POST'])
+@app.route("/register", methods=["POST"])
+def register():
+    data = request.get_json(silent=True) or request.form
+
+    username = data.get("username", "").strip()
+    email = data.get("email", "").strip()
+    password = data.get("password", "")
+    confirm_password = data.get("confirm_password", "")
+
+    if password != confirm_password:
+        return jsonify({"error": "Passwords do not match"}), 400
+
+    result = register_user(username, email, password)
+
+    if "error" in result:
+        return jsonify(result), 400
+
+    return jsonify(result), 201
+
+
+@app.route("/login", methods=["POST"])
 def login():
-    # auth user
+    data = request.get_json(silent=True) or request.form
 
-    # create session
+    username = data.get("username", "").strip()
+    password = data.get("password", "")
+
+    user = authenticate_user(username, password)
+    if not user:
+        return jsonify({"error": "Invalid username or password"}), 401
+
+    token = session_manager.create_session(user["username"])
+
+    response = make_response(jsonify({
+        "success": True,
+        "message": "Login successful",
+        "username": user["username"],
+        "role": user["role"]
+    }))
+
+    response.set_cookie(
+        "session_token",
+        token,
+        httponly=True,
+        secure=False,
+        samesite="Lax",
+        max_age=session_manager.timeout
+    )
 
     return response
 
-@app.route('/admin/dashboard')
-@services.authz.require_auth
-@services.authz.require_role('admin')
+
+@app.route("/logout", methods=["POST"])
+@require_auth
+def logout():
+    token = request.cookies.get("session_token")
+    if token:
+        session_manager.destroy_session(token)
+
+    response = make_response(jsonify({
+        "success": True,
+        "message": "Logged out"
+    }))
+    response.delete_cookie("session_token")
+    return response
+
+
+@app.route("/me", methods=["GET"])
+@require_auth
+def me():
+    user = get_current_user()
+    return jsonify({
+        "username": user["username"],
+        "email": user["email"],
+        "role": user["role"]
+    })
+
+
+@app.route("/admin/dashboard")
+@require_auth
+@require_role("admin")
 def admin_dashboard():
-    return render_template('admin.html')
-
-# make sure password == confirmation for register
-
+    return render_template("admin.html")
 
 
 # @app.after_request
 # def set_headers(response):
-#     from services.security_headers import apply_security_headers
 #     return apply_security_headers(response)
 
 
-# keep route decorators, @app.before_request, @app.after_request
-# routes should import from services:
-# from services.user_manager import register_user
-# from services.session_manager import SessionManager
+if __name__ == "__main__":
+    app.run(debug=True)

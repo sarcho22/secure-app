@@ -22,13 +22,13 @@ class SessionManager:
     def save_sessions(self, sessions):
         save_json(self.sessions_file, {"sessions": sessions})
 
-    def create_session(self, user_id):
-        # generate sessions ID
+    def create_session(self, username):
+        # generate session ID
         token = secrets.token_urlsafe(32)
 
         session = {
             'token': token,
-            'user_id': user_id,
+            'username': username,
             'created_at': time.time(),
             'last_activity': time.time(),
             'ip_address': request.remote_addr,
@@ -60,7 +60,7 @@ class SessionManager:
 
 
     def destroy_session(self, token):
-       sessions = self.load_sessions()
-       if token in sessions:
-           del sessions[token]
-           self.save_sessions(sessions)
+        sessions = self.load_sessions()
+        if token in sessions:
+            del sessions[token]
+            self.save_sessions(sessions)
