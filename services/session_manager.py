@@ -4,22 +4,26 @@ Handles session creation, validation, and expiration.
 
 import secrets
 import time
-import json
 
-# from services.storage import load_json, save_json
+from flask import request
+from services.storage import load_json, save_json
+import config
 
 
 class SessionManager:
-    def __init__(self, timeout=1800): # 30 minutes
+    def __init__(self, timeout=1800): # 30 min
         self.timeout = timeout
-        self.sessions_file = 'data/sessions.json'
+        self.sessions_file = config.SESSIONS_FILE
+
+    def load_sessions(self):
+        data = load_json(self.sessions_file)
+        return data.get("sessions", {})
+    
+    def save_sessions(self, sessions):
+        save_json(self.sessions_file, {"sessions": sessions})
 
     def create_session(self, user_id):
-        """
-        Paste session creation logic here.
-        - Generate session ID
-        - Store in sessions.json
-        """
+        # generate sessions ID
         token = secrets.token_urlsafe(32)
 
         session = {
@@ -38,10 +42,6 @@ class SessionManager:
         return token
 
     def validate_session(self, token):
-        """
-        - Check expiration
-        - Return associated user
-        """
         sessions = self.load_sessions()
 
         if token not in sessions:
@@ -56,11 +56,11 @@ class SessionManager:
         sessions[token] = session
         self.save_sessions(sessions)
 
-        return sessions
+        return session
 
 
     def destroy_session(self, token):
        sessions = self.load_sessions()
        if token in sessions:
            del sessions[token]
-           self.save_sesions(sessions)
+           self.save_sessions(sessions)
