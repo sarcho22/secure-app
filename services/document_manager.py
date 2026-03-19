@@ -1,5 +1,5 @@
 """
-Handles document metadata and basic upload/download operations.
+Handles document metadata, sharing, and basic upload/download operations.
 Uses EncryptedStorage for secure content storage.
 """
 
@@ -10,9 +10,12 @@ import secrets
 import config
 from services.storage import load_json, save_json
 from services.encrypted_storage import EncryptedStorage
+from services.user_manager import username_exists
 
 
 class DocumentManager:
+    VALID_SHARE_ROLES = {"viewer", "editor"}
+
     def __init__(self):
         self.documents_file = os.path.join(config.DATA_DIR, "documents.json")
         self.docs_dir = os.path.join(config.DATA_DIR, "docs")
@@ -37,15 +40,49 @@ class DocumentManager:
                 return document
         return None
 
+    def get_user_role_for_doc(self, doc_id, username):
+        document = self.get_document_by_id(doc_id)
+        if document is None:
+            return None
+
+        if document["owner"] == username:
+            return "owner"
+
+        shared_with = document.get("shared_with", {})
+        info = shared_with.get(username)
+        if info is None:
+            return None
+
+        return info["role"]
+
+    def can_view(self, doc_id, username):
+        role = self.get_user_role_for_doc(doc_id, username)
+        return role in {"owner", "editor", "viewer"}
+
+    def can_edit(self, doc_id, username):
+        role = self.get_user_role_for_doc(doc_id, username)
+        return role in {"owner", "editor"}
+
+    def can_share(self, doc_id, username):
+        role = self.get_user_role_for_doc(doc_id, username)
+        return role == "owner"
+
     def get_user_documents(self, username):
         documents = self.load_documents()
-        return [doc for doc in documents if doc["owner"] == username]
+        visible_docs = []
+
+        for doc in documents:
+            if doc["owner"] == username:
+                visible_docs.append(doc)
+                continue
+
+            shared_with = doc.get("shared_with", {})
+            if username in shared_with:
+                visible_docs.append(doc)
+
+        return visible_docs
 
     def upload_document(self, username, filename, content):
-        """
-        Creates a new encrypted document owned by the given user.
-        content should be text for now.
-        """
         doc_id = self.generate_doc_id()
         encrypted_path = os.path.join(self.docs_dir, f"{doc_id}.enc")
 
@@ -64,6 +101,7 @@ class DocumentManager:
             "version": 1,
             "created_at": time.time(),
             "updated_at": time.time(),
+            "shared_with": {}
         }
 
         documents = self.load_documents()
@@ -77,15 +115,11 @@ class DocumentManager:
         }
 
     def download_document(self, username, doc_id):
-        """
-        For now, only the owner can download.
-        Later this will expand to shared users / roles.
-        """
         document = self.get_document_by_id(doc_id)
         if document is None:
             return {"error": "Document not found"}
 
-        if document["owner"] != username:
+        if not self.can_view(doc_id, username):
             return {"error": "Forbidden"}
 
         decrypted_data = self.storage.load_encrypted(document["encrypted_path"])
@@ -99,9 +133,6 @@ class DocumentManager:
         }
 
     def delete_document(self, username, doc_id):
-        """
-        For now, only the owner can delete.
-        """
         documents = self.load_documents()
         document = self.get_document_by_id(doc_id)
 
@@ -118,3 +149,117 @@ class DocumentManager:
         self.save_documents(updated_documents)
 
         return {"success": True}
+
+    def share_document(self, owner_username, doc_id, target_username, role):
+        if role not in self.VALID_SHARE_ROLES:
+            return {"error": "Invalid role"}
+
+        if not username_exists(target_username):
+            return {"error": "Target user does not exist"}
+
+        documents = self.load_documents()
+
+        for document in documents:
+            if document["doc_id"] == doc_id:
+                if document["owner"] != owner_username:
+                    return {"error": "Forbidden"}
+
+                if target_username == owner_username:
+                    return {"error": "Owner already has access"}
+
+                shared_with = document.get("shared_with", {})
+                shared_with[target_username] = {
+                    "role": role,
+                    "shared_at": time.time()
+                }
+                document["shared_with"] = shared_with
+                document["updated_at"] = time.time()
+
+                self.save_documents(documents)
+                return {
+                    "success": True,
+                    "doc_id": doc_id,
+                    "target_username": target_username,
+                    "role": role
+                }
+
+        return {"error": "Document not found"}
+
+    def unshare_document(self, owner_username, doc_id, target_username):
+        documents = self.load_documents()
+
+        for document in documents:
+            if document["doc_id"] == doc_id:
+                if document["owner"] != owner_username:
+                    return {"error": "Forbidden"}
+
+                if target_username == owner_username:
+                    return {"error": "Owner access cannot be removed"}
+
+                shared_with = document.get("shared_with", {})
+                if target_username not in shared_with:
+                    return {"error": "User does not have shared access"}
+
+                del shared_with[target_username]
+                document["shared_with"] = shared_with
+                document["updated_at"] = time.time()
+
+                self.save_documents(documents)
+                return {
+                    "success": True,
+                    "doc_id": doc_id,
+                    "target_username": target_username
+                }
+
+        return {"error": "Document not found"}
+
+    def update_share_role(self, owner_username, doc_id, target_username, new_role):
+        if new_role not in self.VALID_SHARE_ROLES:
+            return {"error": "Invalid role"}
+
+        documents = self.load_documents()
+
+        for document in documents:
+            if document["doc_id"] == doc_id:
+                if document["owner"] != owner_username:
+                    return {"error": "Forbidden"}
+
+                if target_username == owner_username:
+                    return {"error": "Owner role cannot be changed"}
+
+                shared_with = document.get("shared_with", {})
+                if target_username not in shared_with:
+                    return {"error": "User does not have shared access"}
+
+                shared_with[target_username]["role"] = new_role
+                document["shared_with"] = shared_with
+                document["updated_at"] = time.time()
+
+                self.save_documents(documents)
+                return {
+                    "success": True,
+                    "doc_id": doc_id,
+                    "target_username": target_username,
+                    "role": new_role
+                }
+
+        return {"error": "Document not found"}
+
+    def list_shares_for_doc(self, doc_id):
+        document = self.get_document_by_id(doc_id)
+        if document is None:
+            return {"error": "Document not found"}
+
+        share_list = []
+        for username, info in document.get("shared_with", {}).items():
+            share_list.append({
+                "username": username,
+                "role": info["role"],
+                "shared_at": info["shared_at"]
+            })
+
+        return {
+            "doc_id": doc_id,
+            "owner": document["owner"],
+            "shares": share_list
+        }

@@ -134,6 +134,58 @@ def download(doc_id):
 
     return jsonify(result), 200
 
+@app.route("/share", methods=["POST"])
+@require_auth
+def share_document():
+    data = request.get_json(silent=True) or request.form
+
+    doc_id = data.get("doc_id", "").strip()
+    target_username = data.get("target_username", "").strip()
+    role = data.get("role", "").strip()
+
+    user = get_current_user()
+    result = document_manager.share_document(user["username"], doc_id, target_username, role)
+
+    if "error" in result:
+        if result["error"] == "Document not found":
+            return jsonify(result), 404
+        if result["error"] == "Forbidden":
+            return jsonify(result), 403
+        return jsonify(result), 400
+
+    return jsonify(result), 200
+
+
+@app.route("/unshare", methods=["POST"])
+@require_auth
+def unshare_document():
+    data = request.get_json(silent=True) or request.form
+
+    doc_id = data.get("doc_id", "").strip()
+    target_username = data.get("target_username", "").strip()
+
+    user = get_current_user()
+    result = document_manager.unshare_document(user["username"], doc_id, target_username)
+
+    if "error" in result:
+        if result["error"] == "Document not found":
+            return jsonify(result), 404
+        if result["error"] == "Forbidden":
+            return jsonify(result), 403
+        return jsonify(result), 400
+
+    return jsonify(result), 200
+
+
+@app.route("/shares/<doc_id>", methods=["GET"])
+@require_auth
+def list_shares(doc_id):
+    result = document_manager.list_shares_for_doc(doc_id)
+
+    if "error" in result:
+        return jsonify(result), 404
+
+    return jsonify(result), 200
 
 @app.route("/documents/<doc_id>", methods=["DELETE"])
 @require_auth
