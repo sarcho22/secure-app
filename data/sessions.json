@@ -1,12 +1,3 @@
 {
-    "sessions": {
-        "yll8J-XOQVN839aUxdmeWsz_MuoNCnoI8LxIlc1f7Nw": {
-            "token": "yll8J-XOQVN839aUxdmeWsz_MuoNCnoI8LxIlc1f7Nw",
-            "username": "testuser",
-            "created_at": 1773939845.518757,
-            "last_activity": 1773939921.226895,
-            "ip_address": "127.0.0.1",
-            "user_agent": "curl/8.7.1"
-        }
-    }
+    "sessions": {}
 }
