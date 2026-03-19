@@ -8,6 +8,9 @@ DATA_DIR = os.path.join(BASE_DIR, "data")
 USERS_FILE = os.path.join(DATA_DIR, "users.json")
 SESSIONS_FILE = os.path.join(DATA_DIR, "sessions.json")
 
+# Encryption
+ENCRYPTION_KEY_FILE = os.path.join(DATA_DIR, "secret.key")
+
 # Log file paths
 LOG_DIR = os.path.join(BASE_DIR, "logs")
 SECURITY_LOG = os.path.join(LOG_DIR, "security.log")

@@ -1,8 +1,8 @@
 from cryptography.fernet import Fernet
-import json
+import json, config
 
 class EncryptedStorage:
-    def __init__(self, key_file='secret.key'):
+    def __init__(self, key_file=config.ENCRYPTION_KEY_FILE):
         # Load or generate encryption key
         try:
             with open(key_file, 'rb') as f:
