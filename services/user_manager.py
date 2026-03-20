@@ -121,8 +121,8 @@ def reset_failed_attempts(user):
 def record_failed_login(user):
     user["failed_attempts"] += 1
 
-    if user["failed_attempts"] >= MAX_FAILED_ATTEMPTS:
-        user["locked_until"] = time.time() + LOCKOUT_DURATION_SECONDS
+    if user["failed_attempts"] >= MAX_FAILURES:
+        user["locked_until"] = time.time() + LOCKOUT_DURATION
         user["failed_attempts"] = 0
 
     update_user(user)
