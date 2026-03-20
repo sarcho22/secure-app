@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="dashboard-wrapper">
+        <div class="dashboard-hero">
+            <div class="dashboard-header">
+                <div class="dashboard-header-text">
+                    <h1>Secure Dashboard</h1>
+                    <p>Manage your encrypted documents, sharing, and account activity.</p>
+                </div>
+
+                <div class="dashboard-user-pill" id="currentUserDisplay">
+                    Logged in
+                </div>
+            </div>
+
+            <div class="dashboard-stat-row">
+                <div class="dashboard-stat-card">
+                    <h3>Account Status</h3>
+                    <div class="stat-value">Active</div>
+                </div>
+                <div class="dashboard-stat-card">
+                    <h3>Security</h3>
+                    <div class="stat-value">Protected</div>
+                </div>
+                <div class="dashboard-stat-card">
+                    <h3>Access Model</h3>
+                    <div class="stat-value">RBAC</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="dashboard-grid">
+            <div class="dashboard-panel">
+                <h2>Documents</h2>
+                <p>Upload, view, download, delete, and share encrypted documents securely.</p>
+                <div class="dashboard-actions">
+                    <a class="card-button-link" href="/documents-page">Open Documents</a>
+                </div>
+            </div>
+
+            <div class="dashboard-panel">
+                <h2>Account</h2>
+                <p>Check your session, role, and current account information.</p>
+                <div class="dashboard-actions">
+                    <button type="button" class="secondary" onclick="loadCurrentUser()">Refresh User Info</button>
+                </div>
+            </div>
+
+            <div class="dashboard-panel">
+                <h2>Session</h2>
+                <p>End your current secure session when you are done using the system.</p>
+                <div class="dashboard-actions">
+                    <button type="button" class="danger" onclick="logout()">Logout</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="dashboard-footer">
+            Secure Document Sharing System
+        </div>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>

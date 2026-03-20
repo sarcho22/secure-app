@@ -107,9 +107,17 @@ def update_user(updated_user):
 
 def is_account_locked(user):
     locked_until = user.get("locked_until")
+
     if locked_until is None:
         return False
-    return time.time() < locked_until
+
+    if time.time() >= locked_until:
+        user["locked_until"] = None
+        user["failed_attempts"] = 0
+        update_user(user)
+        return False
+
+    return True
 
 
 def reset_failed_attempts(user):

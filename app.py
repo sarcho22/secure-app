@@ -13,6 +13,28 @@ app.config["SECRET_KEY"] = config.SECRET_KEY
 session_manager = SessionManager()
 document_manager = DocumentManager()
 
+@app.route("/")
+def home():
+    return render_template("login.html")
+
+@app.route("/login-page")
+def login_page():
+    return render_template("login.html")
+
+@app.route("/register-page")
+def register_page():
+    return render_template("register.html")
+
+@app.route("/dashboard")
+@require_auth
+def dashboard():
+    return render_template("dashboard.html")
+
+@app.route("/documents-page")
+@require_auth
+def documents_page():
+    return render_template("documents.html")
+
 @app.route("/register", methods=["POST"])
 def register():
     data = request.get_json(silent=True) or request.form
