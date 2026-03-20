@@ -1,12 +1,3 @@
 {
-    "sessions": {
-        "JnTnhpJLfx46JwohsshWm8ScXSrK9Ie6FmeKC_kzBio": {
-            "token": "JnTnhpJLfx46JwohsshWm8ScXSrK9Ie6FmeKC_kzBio",
-            "username": "testuser",
-            "created_at": 1773940812.221975,
-            "last_activity": 1773941097.251758,
-            "ip_address": "127.0.0.1",
-            "user_agent": "curl/8.7.1"
-        }
-    }
+    "sessions": {}
 }

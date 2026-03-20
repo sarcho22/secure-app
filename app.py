@@ -40,10 +40,11 @@ def login():
     username = data.get("username", "").strip()
     password = data.get("password", "")
 
-    user = authenticate_user(username, password)
-    if not user:
-        return jsonify({"error": "Invalid username or password"}), 401
+    result = authenticate_user(username, password)
+    if "error" in result:
+        return jsonify(result), 401
 
+    user = result["user"]
     token = session_manager.create_session(user["username"])
 
     response = make_response(jsonify({

@@ -10,6 +10,9 @@ from services.validation import validate_username, validate_password_strength, v
 from services.storage import save_json, load_json
 import config
 
+MAX_FAILURES = 5
+LOCKOUT_DURATION = 900 # 15 minutes
+
 def register_user(username, email, password):
     # Validate inputs
     if not validate_username(username):
@@ -52,16 +55,19 @@ def register_user(username, email, password):
 
 
 def authenticate_user(username, password):
-    """
-    - hash password with bcrypt (cost factor >= 12)
-    - Return user if valid
-    """
     user = get_user_from_username(username)
     if user is None:
-        return False
-    if bcrypt.checkpw(password.encode('utf-8'), user['password_hash'].encode('utf-8')):
-        return user
-    return False
+        return {"error": "Invalid username or password"}
+
+    if is_account_locked(user):
+        return {"error": "Account is temporarily locked"}
+
+    if bcrypt.checkpw(password.encode("utf-8"), user["password_hash"].encode("utf-8")):
+        reset_failed_attempts(user)
+        return {"success": True, "user": user}
+
+    record_failed_login(user)
+    return {"error": "Invalid username or password"}
 
 def get_user_from_username(username):
     user_data = load_json(config.USERS_FILE)
@@ -79,3 +85,44 @@ def email_exists(email):
         if user['email'] == email:
             return True
     return False
+
+def get_all_users():
+    user_data = load_json(config.USERS_FILE)
+    return user_data.get("users", [])
+
+
+def save_all_users(users):
+    save_json(config.USERS_FILE, {"users": users})
+
+
+def update_user(updated_user):
+    users = get_all_users()
+    for i, user in enumerate(users):
+        if user["username"] == updated_user["username"]:
+            users[i] = updated_user
+            save_all_users(users)
+            return True
+    return False
+
+
+def is_account_locked(user):
+    locked_until = user.get("locked_until")
+    if locked_until is None:
+        return False
+    return time.time() < locked_until
+
+
+def reset_failed_attempts(user):
+    user["failed_attempts"] = 0
+    user["locked_until"] = None
+    update_user(user)
+
+
+def record_failed_login(user):
+    user["failed_attempts"] += 1
+
+    if user["failed_attempts"] >= MAX_FAILED_ATTEMPTS:
+        user["locked_until"] = time.time() + LOCKOUT_DURATION_SECONDS
+        user["failed_attempts"] = 0
+
+    update_user(user)
