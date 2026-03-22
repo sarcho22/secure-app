@@ -157,6 +157,24 @@ def download(doc_id):
 
     return jsonify(result), 200
 
+@app.route("/replace", methods=["POST"])
+@require_auth
+def replace_document():
+    data = request.get_json(silent=True) or request.form
+
+    doc_id = data.get("doc_id", "").strip()
+    content = data.get("content", "")
+
+    user = get_current_user()
+    result = document_manager.replace_document(user["username"], doc_id, content)
+
+    if "error" in result:
+        if result["error"] == "Document not found":
+            return jsonify(result), 404
+        return jsonify(result), 403
+
+    return jsonify(result), 200
+
 @app.route("/share", methods=["POST"])
 @require_auth
 def share_document():

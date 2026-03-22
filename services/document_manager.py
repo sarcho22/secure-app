@@ -161,7 +161,7 @@ class DocumentManager:
 
         for document in documents:
             if document["doc_id"] == doc_id:
-                if document["owner"] != owner_username:
+                if not self.can_share(doc_id, owner_username):
                     return {"error": "Forbidden"}
 
                 if target_username == owner_username:
@@ -263,3 +263,35 @@ class DocumentManager:
             "owner": document["owner"],
             "shares": share_list
         }
+    
+    def replace_document(self, username, doc_id, new_content):
+        """
+        Owner or editor can replace the document content.
+        This acts like uploading a new version of the file.
+        """
+        documents = self.load_documents()
+
+        for document in documents:
+            if document["doc_id"] == doc_id:
+                if not self.can_edit(doc_id, username):
+                    return {"error": "Forbidden"}
+
+                self.storage.save_encrypted(
+                    document["encrypted_path"],
+                    {
+                        "content": new_content
+                    }
+                )
+
+                document["version"] += 1
+                document["updated_at"] = time.time()
+
+                self.save_documents(documents)
+
+                return {
+                    "success": True,
+                    "doc_id": doc_id,
+                    "version": document["version"]
+                }
+
+        return {"error": "Document not found"}
