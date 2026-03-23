@@ -72,3 +72,53 @@ body {
     text-align: center;
     margin-bottom: 16px;
 }
+
+textarea.input {
+    resize: vertical;
+    min-height: 100px;
+}
+
+#docList {
+    margin-top: 16px;
+}
+
+.doc-card {
+    background: rgba(255, 255, 255, 0.55);
+    border: 1px solid #BFD7FF;
+    border-radius: 12px;
+    padding: 14px;
+    margin-bottom: 12px;
+}
+
+.doc-title {
+    font-weight: bold;
+    margin-bottom: 8px;
+}
+
+.doc-meta {
+    font-size: 14px;
+    margin-bottom: 10px;
+}
+
+.doc-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.doc-actions .btn {
+    flex: 1;
+}
+
+hr {
+    margin: 24px 0;
+    border: none;
+    border-top: 1px solid rgba(191, 215, 255, 0.8);
+}
+
+#uploadMessage {
+    text-align: center;
+    min-height: 20px;
+    margin-top: 10px;
+    color: red;
+}

@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Documents</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <h2 class="title">Documents</h2>
+
+        <form id="uploadForm" class="form">
+            <input class="input" type="text" id="filename" placeholder="Filename" required>
+            <textarea class="input" id="content" placeholder="Document content" rows="5"></textarea>
+            <button class="btn" type="submit">Upload Document</button>
+        </form>
+
+        <p id="uploadMessage"></p>
+
+        <hr>
+
+        <h3 class="title">Your Documents</h3>
+        <div id="docList"></div>
+
+        <p class="link-text">
+            <a href="/dashboard">Back to Dashboard</a>
+        </p>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>

@@ -70,15 +70,44 @@ document.addEventListener("DOMContentLoaded", () => {
         loadCurrentUser();
     }
 
-    if (refreshUserBtn) {
-        refreshUserBtn.addEventListener("click", loadCurrentUser);
-    }
-
     if (logoutBtn) {
         logoutBtn.addEventListener("click", logout);
     }
+
+    // documents code
+    const uploadForm = document.getElementById("uploadForm");
+
+    if (uploadForm) {
+        loadDocuments();
+
+        uploadForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+
+            const filename = document.getElementById("filename").value;
+            const content = document.getElementById("content").value;
+            const uploadMessage = document.getElementById("uploadMessage");
+
+            const res = await fetch("/upload", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+                body: JSON.stringify({ filename, content })
+            });
+
+            const data = await res.json();
+
+            if (res.ok) {
+                uploadMessage.textContent = "Upload successful";
+                uploadForm.reset();
+                loadDocuments();
+            } else {
+                uploadMessage.textContent = data.error;
+            }
+        });
+    }
 });
 
+// dashboard functions
 async function loadCurrentUser() {
     const welcomeText = document.getElementById("welcomeText");
     const error = document.getElementById("error");
@@ -105,4 +134,96 @@ async function logout() {
     });
 
     window.location.href = "/login-page";
+}
+
+// document functions
+async function loadDocuments() {
+    const docList = document.getElementById("docList");
+    if (!docList) return;
+
+    const res = await fetch("/documents", {
+        credentials: "include"
+    });
+
+    const data = await res.json();
+    docList.innerHTML = "";
+
+    if (!res.ok) {
+        docList.innerHTML = "<p>Could not load documents.</p>";
+        return;
+    }
+
+    if (!data.documents || data.documents.length === 0) {
+        docList.innerHTML = "<p>No documents yet.</p>";
+        return;
+    }
+
+    data.documents.forEach((doc) => {
+        const card = document.createElement("div");
+        card.className = "doc-card";
+
+        card.innerHTML = `
+            <div class="doc-title">${doc.filename}</div>
+            <div class="doc-meta">Version: ${doc.version}</div>
+            <div class="doc-actions">
+                <button class="btn" type="button" onclick="downloadDocument('${doc.doc_id}')">Download</button>
+                <button class="btn" type="button" onclick="replaceDocumentPrompt('${doc.doc_id}')">Replace</button>
+                <button class="btn" type="button" onclick="deleteDocument('${doc.doc_id}')">Delete</button>
+            </div>
+        `;
+
+        docList.appendChild(card);
+    });
+}
+
+async function downloadDocument(docId) {
+    const res = await fetch(`/download/${docId}`, {
+        credentials: "include"
+    });
+
+    const data = await res.json();
+
+    if (res.ok) {
+        alert(`Filename: ${data.filename}\n\nContent:\n${data.content}`);
+    } else {
+        alert(data.error || "Download failed");
+    }
+}
+
+async function deleteDocument(docId) {
+    const res = await fetch(`/documents/${docId}`, {
+        method: "DELETE",
+        credentials: "include"
+    });
+
+    const data = await res.json();
+
+    if (res.ok) {
+        loadDocuments();
+    } else {
+        alert(data.error || "Delete failed");
+    }
+}
+
+async function replaceDocumentPrompt(docId) {
+    const newContent = prompt("Enter new document content:");
+    if (newContent === null) return;
+
+    const res = await fetch("/replace", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+            doc_id: docId,
+            content: newContent
+        })
+    });
+
+    const data = await res.json();
+
+    if (res.ok) {
+        loadDocuments();
+    } else {
+        alert(data.error || "Replace failed");
+    }
 }
