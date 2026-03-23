@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <h2 class="title">Dashboard</h2>
+
+        <p id="welcomeText">Loading user info...</p>
+
+        <div class="form">
+            <button class="btn" type="button" onclick="window.location.href='/documents-page'">
+                Go to Documents
+            </button>
+
+            <button class="btn" type="button" id="refreshUserBtn">
+                Refresh User Info
+            </button>
+
+            <button class="btn" type="button" id="logoutBtn">
+                Logout
+            </button>
+        </div>
+
+        <p id="error"></p>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
