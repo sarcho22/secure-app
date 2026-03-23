@@ -75,6 +75,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // documents code
     const uploadForm = document.getElementById("uploadForm");
+    const docList = document.getElementById("docList");
+
+    if (docList) {
+        loadDocuments();
+    }
 
     if (uploadForm) {
         uploadForm.addEventListener("submit", async (e) => {
@@ -82,6 +87,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
             const fileInput = document.getElementById("fileInput");
             const file = fileInput.files[0];
+
+            if (!file) {
+                alert("Please select a file.");
+                return;
+            }
 
             const formData = new FormData();
             formData.append("file", file);
@@ -95,12 +105,14 @@ document.addEventListener("DOMContentLoaded", () => {
             const data = await res.json();
 
             if (res.ok) {
+                uploadForm.reset();
                 loadDocuments();
             } else {
                 alert(data.error);
             }
         });
     }
+});
 
 // dashboard functions
 async function loadCurrentUser() {
@@ -176,13 +188,40 @@ async function downloadDocument(docId) {
         credentials: "include"
     });
 
-    const data = await res.json();
+    if (!res.ok) {
+        let errorMessage = "Download failed";
 
-    if (res.ok) {
-        alert(`Filename: ${data.filename}\n\nContent:\n${data.content}`);
-    } else {
-        alert(data.error || "Download failed");
+        try {
+            const data = await res.json();
+            errorMessage = data.error || errorMessage;
+        } catch {
+            // ignore JSON parse failure
+        }
+
+        alert(errorMessage);
+        return;
     }
+
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+
+    // try to get filename from response header
+    const disposition = res.headers.get("Content-Disposition");
+    let filename = "downloaded_file";
+
+    if (disposition && disposition.includes("filename=")) {
+        filename = disposition.split("filename=")[1].replace(/"/g, "");
+    }
+
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
+    window.URL.revokeObjectURL(url);
 }
 
 async function deleteDocument(docId) {
@@ -201,24 +240,31 @@ async function deleteDocument(docId) {
 }
 
 async function replaceDocumentPrompt(docId) {
-    const newContent = prompt("Enter new document content:");
-    if (newContent === null) return;
+    const fileInput = document.createElement("input");
+    fileInput.type = "file";
 
-    const res = await fetch("/replace", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({
-            doc_id: docId,
-            content: newContent
-        })
-    });
+    fileInput.onchange = async () => {
+        const file = fileInput.files[0];
+        if (!file) return;
 
-    const data = await res.json();
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("doc_id", docId);
 
-    if (res.ok) {
-        loadDocuments();
-    } else {
-        alert(data.error || "Replace failed");
-    }
+        const res = await fetch("/replace", {
+            method: "POST",
+            credentials: "include",
+            body: formData
+        });
+
+        const data = await res.json();
+
+        if (res.ok) {
+            loadDocuments();
+        } else {
+            alert(data.error || "Replace failed");
+        }
+    };
+
+    fileInput.click();
 }
