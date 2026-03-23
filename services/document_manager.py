@@ -11,6 +11,7 @@ import config
 from services.storage import load_json, save_json
 from services.encrypted_storage import EncryptedStorage
 from services.user_manager import username_exists
+from werkzeug.utils import secure_filename
 
 
 class DocumentManager:
@@ -82,14 +83,24 @@ class DocumentManager:
 
         return visible_docs
 
-    def upload_document(self, username, filename, content):
+    def upload_file(self, username, file):
+        filename = secure_filename(file.filename)
+        if not filename:
+            return {"error": "Invalid filename"}
+        
         doc_id = self.generate_doc_id()
+
         encrypted_path = os.path.join(self.docs_dir, f"{doc_id}.enc")
 
+        # read file bytes
+        file_bytes = file.read()
+
+        # encrypt and store
         self.storage.save_encrypted(
             encrypted_path,
             {
-                "content": content
+                "filename": filename,
+                "data": file_bytes.decode("latin1")  # store binary safely
             }
         )
 
@@ -112,24 +123,6 @@ class DocumentManager:
             "success": True,
             "doc_id": doc_id,
             "filename": filename
-        }
-
-    def download_document(self, username, doc_id):
-        document = self.get_document_by_id(doc_id)
-        if document is None:
-            return {"error": "Document not found"}
-
-        if not self.can_view(doc_id, username):
-            return {"error": "Forbidden"}
-
-        decrypted_data = self.storage.load_encrypted(document["encrypted_path"])
-
-        return {
-            "success": True,
-            "doc_id": document["doc_id"],
-            "filename": document["filename"],
-            "content": decrypted_data.get("content", ""),
-            "version": document["version"],
         }
 
     def delete_document(self, username, doc_id):
@@ -264,11 +257,7 @@ class DocumentManager:
             "shares": share_list
         }
     
-    def replace_document(self, username, doc_id, new_content):
-        """
-        Owner or editor can replace the document content.
-        This acts like uploading a new version of the file.
-        """
+    def replace_file(self, username, doc_id, file):
         documents = self.load_documents()
 
         for document in documents:
@@ -276,10 +265,13 @@ class DocumentManager:
                 if not self.can_edit(doc_id, username):
                     return {"error": "Forbidden"}
 
+                file_bytes = file.read()
+
                 self.storage.save_encrypted(
                     document["encrypted_path"],
                     {
-                        "content": new_content
+                        "filename": document["filename"],
+                        "data": file_bytes.decode("latin1")
                     }
                 )
 
@@ -295,3 +287,21 @@ class DocumentManager:
                 }
 
         return {"error": "Document not found"}
+
+    def get_file(self, username, doc_id):
+        document = self.get_document_by_id(doc_id)
+
+        if document is None:
+            return {"error": "Document not found"}
+
+        if not self.can_view(doc_id, username):
+            return {"error": "Forbidden"}
+
+        decrypted = self.storage.load_encrypted(document["encrypted_path"])
+
+        data = decrypted["data"].encode("latin1")
+
+        return {
+            "filename": document["filename"],
+            "data": data
+        }

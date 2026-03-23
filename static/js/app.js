@@ -77,34 +77,30 @@ document.addEventListener("DOMContentLoaded", () => {
     const uploadForm = document.getElementById("uploadForm");
 
     if (uploadForm) {
-        loadDocuments();
-
         uploadForm.addEventListener("submit", async (e) => {
             e.preventDefault();
 
-            const filename = document.getElementById("filename").value;
-            const content = document.getElementById("content").value;
-            const uploadMessage = document.getElementById("uploadMessage");
+            const fileInput = document.getElementById("fileInput");
+            const file = fileInput.files[0];
+
+            const formData = new FormData();
+            formData.append("file", file);
 
             const res = await fetch("/upload", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
                 credentials: "include",
-                body: JSON.stringify({ filename, content })
+                body: formData
             });
 
             const data = await res.json();
 
             if (res.ok) {
-                uploadMessage.textContent = "Upload successful";
-                uploadForm.reset();
                 loadDocuments();
             } else {
-                uploadMessage.textContent = data.error;
+                alert(data.error);
             }
         });
     }
-});
 
 // dashboard functions
 async function loadCurrentUser() {

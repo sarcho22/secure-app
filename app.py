@@ -1,6 +1,6 @@
-from flask import Flask, request, jsonify, make_response, render_template
+from flask import Flask, request, jsonify, make_response, render_template, send_file
 import config
-
+import io
 from services.user_manager import register_user, authenticate_user
 from services.session_manager import SessionManager
 from services.document_manager import DocumentManager
@@ -116,16 +116,20 @@ def me():
 @app.route("/upload", methods=["POST"])
 @require_auth
 def upload():
-    data = request.get_json(silent=True) or request.form
+    if "file" not in request.files:
+        return jsonify({"error": "No file provided"}), 400
 
-    filename = data.get("filename", "").strip()
-    content = data.get("content", "")
+    file = request.files["file"]
 
-    if not filename:
-        return jsonify({"error": "Filename is required"}), 400
+    if file.filename == "":
+        return jsonify({"error": "No file selected"}), 400
 
     user = get_current_user()
-    result = document_manager.upload_document(user["username"], filename, content)
+
+    result = document_manager.upload_file(
+        user["username"],
+        file
+    )
 
     if "error" in result:
         return jsonify(result), 400
@@ -143,30 +147,41 @@ def list_documents():
         "documents": documents
     })
 
-
 @app.route("/download/<doc_id>", methods=["GET"])
 @require_auth
 def download(doc_id):
     user = get_current_user()
-    result = document_manager.download_document(user["username"], doc_id)
+    result = document_manager.get_file(user["username"], doc_id)
 
     if "error" in result:
         if result["error"] == "Document not found":
             return jsonify(result), 404
         return jsonify(result), 403
 
-    return jsonify(result), 200
+    file_bytes = result["data"]
+    filename = result["filename"]
+
+    return send_file(
+        io.BytesIO(file_bytes),
+        as_attachment=True,
+        download_name=filename
+    )
 
 @app.route("/replace", methods=["POST"])
 @require_auth
 def replace_document():
-    data = request.get_json(silent=True) or request.form
+    if "file" not in request.files:
+        return jsonify({"error": "No file provided"}), 400
 
-    doc_id = data.get("doc_id", "").strip()
-    content = data.get("content", "")
+    file = request.files["file"]
+
+    if file.filename == "":
+        return jsonify({"error": "No file selected"}), 400
+
+    doc_id = request.form.get("doc_id", "").strip()
 
     user = get_current_user()
-    result = document_manager.replace_document(user["username"], doc_id, content)
+    result = document_manager.replace_file(user["username"], doc_id, file)
 
     if "error" in result:
         if result["error"] == "Document not found":

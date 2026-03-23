@@ -10,10 +10,9 @@
     <div class="container">
         <h2 class="title">Documents</h2>
 
-        <form id="uploadForm" class="form">
-            <input class="input" type="text" id="filename" placeholder="Filename" required>
-            <textarea class="input" id="content" placeholder="Document content" rows="5"></textarea>
-            <button class="btn" type="submit">Upload Document</button>
+        <form id="uploadForm" class="form" enctype="multipart/form-data">
+            <input class="input" type="file" id="fileInput" required>
+            <button class="btn" type="submit">Upload File</button>
         </form>
 
         <p id="uploadMessage"></p>
