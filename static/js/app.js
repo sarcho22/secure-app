@@ -63,7 +63,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // dashboard code
     const welcomeText = document.getElementById("welcomeText");
-    const refreshUserBtn = document.getElementById("refreshUserBtn");
     const logoutBtn = document.getElementById("logoutBtn");
 
     if (welcomeText) {
