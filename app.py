@@ -30,8 +30,8 @@ ensure_app_files()
 
 @app.route("/")
 def home():
-    print("HOME ROUTE HIT")
-    return render_template("login.html")
+    print("HOME ROUTE HIT", flush=True)
+    # return render_template("login.html")
 
 @app.route("/login-page")
 def login_page():
