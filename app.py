@@ -36,6 +36,11 @@ def home():
     print("HOME ROUTE HIT", flush=True)
     return "Hello from Railway"
 
+@app.errorhandler(Exception)
+def handle_exception(e):
+    print("UNHANDLED EXCEPTION:", repr(e), flush=True)
+    return "Internal Server Error", 500
+
 @app.route("/login-page")
 def login_page():
     return render_template("login.html")
