@@ -18,7 +18,7 @@ class DocumentManager:
     VALID_SHARE_ROLES = {"viewer", "editor"}
 
     def __init__(self):
-        self.documents_file = os.path.join(config.DATA_DIR, "documents.json")
+        self.documents_file = config.DOCUMENTS_FILE
         self.docs_dir = os.path.join(config.DATA_DIR, "docs")
         self.storage = EncryptedStorage()
 

@@ -7,6 +7,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(BASE_DIR, "data")
 USERS_FILE = os.path.join(DATA_DIR, "users.json")
 SESSIONS_FILE = os.path.join(DATA_DIR, "sessions.json")
+DOCUMENTS_FILE = os.path.join(DATA_DIR, "documents.json")
 
 # Encryption
 ENCRYPTION_KEY_FILE = os.path.join(DATA_DIR, "secret.key")

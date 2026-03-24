@@ -1,6 +1,6 @@
 from flask import Flask, redirect, request, jsonify, make_response, render_template, send_file
-import config
-import io
+import config, io, os
+from services.storage import save_json
 from services.user_manager import register_user, authenticate_user
 from services.session_manager import SessionManager
 from services.document_manager import DocumentManager
@@ -12,6 +12,21 @@ app.config["SECRET_KEY"] = config.SECRET_KEY
 
 session_manager = SessionManager()
 document_manager = DocumentManager()
+
+def ensure_app_files():
+    os.makedirs(config.DATA_DIR, exist_ok=True)
+    os.makedirs(os.path.join(config.DATA_DIR, "docs"), exist_ok=True)
+
+    if not os.path.exists(config.USERS_FILE):
+        save_json(config.USERS_FILE, {"users": []})
+
+    if not os.path.exists(config.SESSIONS_FILE):
+        save_json(config.SESSIONS_FILE, {"sessions": {}})
+
+    if not os.path.exists(config.DOCUMENTS_FILE):
+        save_json(config.DOCUMENTS_FILE, {"documents": []})
+
+ensure_app_files()
 
 @app.route("/")
 def home():
