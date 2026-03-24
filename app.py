@@ -28,13 +28,9 @@ def ensure_app_files():
 
 ensure_app_files()
 
-# @app.route("/")
-# def home():
-    # return render_template("login.html")
 @app.route("/")
 def home():
-    print("HOME ROUTE HIT", flush=True)
-    return "Hello from Railway"
+    return render_template("login.html")
 
 @app.errorhandler(Exception)
 def handle_exception(e):
