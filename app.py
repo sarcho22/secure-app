@@ -297,11 +297,6 @@ def set_security_headers(response):
     )
     return response
 
-
-@app.after_request
-def set_headers(response):
-    return set_security_headers(response)
-
 # for development, generate self-signed certificate:
 # openssl req -x509 -newkey rsa:4096 -nodes -out cert.pem -keyout key.pem -days 365
 # Flask with TLS:
@@ -313,6 +308,6 @@ if __name__ == '__main__':
 # Force HTTPS:
 @app.before_request
 def require_https():
-    if not request.is_secure and app.env != "development":
+    if not request.is_secure and not app.debug:
         url = request.url.replace("http://", "https://", 1)
         return redirect(url, code=301)
