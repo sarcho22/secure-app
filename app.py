@@ -28,10 +28,13 @@ def ensure_app_files():
 
 ensure_app_files()
 
+# @app.route("/")
+# def home():
+    # return render_template("login.html")
 @app.route("/")
 def home():
     print("HOME ROUTE HIT", flush=True)
-    # return render_template("login.html")
+    return "Hello from Railway"
 
 @app.route("/login-page")
 def login_page():
