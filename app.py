@@ -1,11 +1,10 @@
-from flask import Flask, request, jsonify, make_response, render_template, send_file
+from flask import Flask, redirect, request, jsonify, make_response, render_template, send_file
 import config
 import io
 from services.user_manager import register_user, authenticate_user
 from services.session_manager import SessionManager
 from services.document_manager import DocumentManager
 from services.authz import require_auth, require_role, get_current_user
-# from services.security_headers import apply_security_headers
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = config.SECRET_KEY
@@ -262,11 +261,58 @@ def delete_document(doc_id):
 def admin_dashboard():
     return render_template("admin.html")
 
+@app.after_request
+def set_security_headers(response):
+    # Content Security Policy
+    response.headers['Content-Security-Policy'] = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline'; " # Avoid unsafe-inline in production
+        "style-src 'self' 'unsafe-inline'; "
+        "img-src 'self' data:; "
+        "font-src 'self'; "
+        "connect-src 'self'; "
+        "frame-ancestors 'none'"
+    )
 
-# @app.after_request
-# def set_headers(response):
-#     return apply_security_headers(response)
+    # Prevent clickjacking
+    response.headers['X-Frame-Options'] = 'DENY'
+
+    # Prevent MIME type sniffing
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+
+    # XSS Protection (legacy, but still useful)
+    response.headers['X-XSS-Protection'] = '1; mode=block'
+
+    # Referrer Policy
+    response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+    
+    # Permissions Policy
+    response.headers['Permissions-Policy'] = (
+        'geolocation=(), microphone=(), camera=()'
+    )
+
+    # HSTS (HTTP Strict Transport Security)
+    response.headers['Strict-Transport-Security'] = (
+        'max-age=31536000; includeSubDomains'
+    )
+    return response
 
 
-if __name__ == "__main__":
-    app.run(debug=True)
+@app.after_request
+def set_headers(response):
+    return set_security_headers(response)
+
+# for development, generate self-signed certificate:
+# openssl req -x509 -newkey rsa:4096 -nodes -out cert.pem -keyout key.pem -days 365
+# Flask with TLS:
+if __name__ == '__main__':
+    app.run(ssl_context=('cert.pem', 'key.pem'),
+            host='0.0.0.0',
+            port=5000)
+
+# Force HTTPS:
+@app.before_request
+def require_https():
+    if not request.is_secure and app.env != "development":
+        url = request.url.replace("http://", "https://", 1)
+        return redirect(url, code=301)
