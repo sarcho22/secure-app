@@ -321,14 +321,14 @@ def set_security_headers(response):
 # for development, generate self-signed certificate:
 # openssl req -x509 -newkey rsa:4096 -nodes -out cert.pem -keyout key.pem -days 365
 # Flask with TLS:
-if __name__ == '__main__':
-    app.run(ssl_context=('cert.pem', 'key.pem'),
-            host='0.0.0.0',
-            port=5000)
+# if __name__ == '__main__':
+#     app.run(ssl_context=('cert.pem', 'key.pem'),
+#             host='0.0.0.0',
+#             port=5000)
 
 # Force HTTPS:
-@app.before_request
-def require_https():
-    if not request.is_secure and not app.debug:
-        url = request.url.replace("http://", "https://", 1)
-        return redirect(url, code=301)
+# @app.before_request
+# def require_https():
+#     if not request.is_secure and not app.debug:
+#         url = request.url.replace("http://", "https://", 1)
+#         return redirect(url, code=301)
