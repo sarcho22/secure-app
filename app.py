@@ -5,7 +5,7 @@ from services.user_manager import register_user, authenticate_user
 from services.security_logger import SecurityLogger
 from services.session_manager import SessionManager
 from services.document_manager import DocumentManager
-from services.authz import require_auth, require_role, get_current_user
+from services.authz import require_auth, require_any_role, get_current_user
 
 app = Flask(__name__)
 
@@ -61,20 +61,13 @@ def register():
     password = data.get("password", "")
     confirm_password = data.get("confirm_password", "")
 
-    # log attempt
-    security_logger.log_event(
-        event_type="REGISTER_ATTEMPT",
-        user_id=username,
-        details=f"Registration attempted with email: {email}"
-    )
-
     if password != confirm_password:
         # not sure if i need to log this
         security_logger.log_event(
             event_type="INPUT_VALIDATION_FAILURE",
             user_id=username,
             details="Passwords do not match",
-            severity="WARNING"
+            severity="ERROR"
         )
         return jsonify({"error": "Passwords do not match"}), 400
 
@@ -86,7 +79,7 @@ def register():
             event_type="INPUT_VALIDATION_FAILURE",
             user_id=username,
             details=result["error"],
-            severity="WARNING"
+            severity="ERROR"
         )
         return jsonify(result), 400
     
@@ -115,13 +108,21 @@ def login():
 
     result = authenticate_user(username, password)
     if "error" in result:
+        if result["error"] == "Account is temporarily locked":
+            security_logger.log_event(
+                event_type="AUTHENTICATION_FAILURE",
+                user_id=username,
+                details="Reached maximum login attempts. Account locked.",
+                severity="CRITICAL"
+            )
+        else:
         # authentication failure
-        security_logger.log_event(
-            event_type="AUTHENTICATION_FAILURE",
-            user_id=username,
-            details=result["error"],
-            severity="WARNING"
-        )
+            security_logger.log_event(
+                event_type="AUTHENTICATION_FAILURE",
+                user_id=username,
+                details=result["error"],
+                severity="WARNING"
+            )
         return jsonify(result), 401
 
     user = result["user"]
@@ -191,13 +192,14 @@ def me():
 
 @app.route("/upload", methods=["POST"])
 @require_auth
+@require_any_role("user", "admin")
 def upload():
     if "file" not in request.files:
         security_logger.log_event(
             event_type="INPUT_VALIDATION_FAILURE",
             user_id=request.user["username"],
             details="Upload failed: no file provided",
-            severity="WARNING"
+            severity="ERROR"
         )
         return jsonify({"error": "No file provided"}), 400
 
@@ -208,7 +210,7 @@ def upload():
             event_type="INPUT_VALIDATION_FAILURE",
             user_id=request.user["username"],
             details="Upload failed: no file selected",
-            severity="WARNING"
+            severity="ERROR"
         )
         return jsonify({"error": "No file selected"}), 400
 
@@ -222,7 +224,7 @@ def upload():
             event_type="INPUT_VALIDATION_FAILURE",
             user_id=request.user["username"],
             details=f"Upload failed: {result['error']}",
-            severity="WARNING"
+            severity="ERROR"
         )
         return jsonify(result), 400
 
@@ -262,7 +264,7 @@ def download(doc_id):
                 event_type="DATA_READ",
                 user_id=request.user["username"],
                 details=f"Download failed: document {doc_id} not found",
-                severity="WARNING"
+                severity="ERROR"
             )
             return jsonify(result), 404
         security_logger.log_event(
@@ -290,13 +292,14 @@ def download(doc_id):
 
 @app.route("/replace", methods=["POST"])
 @require_auth
+@require_any_role("user", "admin")
 def replace_document():
     if "file" not in request.files:
         security_logger.log_event(
             event_type="INPUT_VALIDATION_FAILURE",
             user_id=request.user["username"],
             details="Replace failed: no file provided",
-            severity="WARNING"
+            severity="ERROR"
         )
         return jsonify({"error": "No file provided"}), 400
 
@@ -307,7 +310,7 @@ def replace_document():
             event_type="INPUT_VALIDATION_FAILURE",
             user_id=request.user["username"],
             details="Replace failed: no file selected",
-            severity="WARNING"
+            severity="ERROR"
         )
         return jsonify({"error": "No file selected"}), 400
 
@@ -321,7 +324,7 @@ def replace_document():
                 event_type="DATA_UPDATE",
                 user_id=request.user["username"],
                 details=f"Replace failed: document {doc_id} not found",
-                severity="WARNING"
+                severity="ERROR"
             )
             return jsonify(result), 404
         security_logger.log_event(
@@ -356,7 +359,7 @@ def share_document():
                 event_type="DATA_UPDATE",
                 user_id=request.user["username"],
                 details=f"Share failed: document {doc_id} not found",
-                severity="WARNING"
+                severity="ERROR"
             )
             return jsonify(result), 404
         if result["error"] == "Forbidden":
@@ -371,7 +374,7 @@ def share_document():
             event_type="INPUT_VALIDATION_FAILURE",
             user_id=request.user["username"],
             details=f"Share failed: {result['error']}",
-            severity="WARNING"
+            severity="ERROR"
         )
         return jsonify(result), 400
 
@@ -399,7 +402,7 @@ def unshare_document():
                 event_type="DATA_UPDATE",
                 user_id=request.user["username"],
                 details=f"Unshare failed: document {doc_id} not found",
-                severity="WARNING"
+                severity="ERROR"
             )
             return jsonify(result), 404
         if result["error"] == "Forbidden":
@@ -414,7 +417,7 @@ def unshare_document():
             event_type="INPUT_VALIDATION_FAILURE",
             user_id=request.user["username"],
             details=f"Unshare failed: {result['error']}",
-            severity="WARNING"
+            severity="ERROR"
         )
         return jsonify(result), 400
     
@@ -436,7 +439,7 @@ def list_shares(doc_id):
             event_type="DATA_READ",
             user_id=request.user["username"],
             details=f"List shares failed: document {doc_id} not found",
-            severity="WARNING"
+            severity="ERROR"
         )
         return jsonify(result), 404
 
@@ -449,6 +452,7 @@ def list_shares(doc_id):
 
 @app.route("/documents/<doc_id>", methods=["DELETE"])
 @require_auth
+@require_any_role("user", "admin")
 def delete_document(doc_id):
     result = document_manager.delete_document(request.user["username"], doc_id)
 
@@ -458,7 +462,7 @@ def delete_document(doc_id):
                 event_type="DATA_DELETE",
                 user_id=request.user["username"],
                 details=f"Delete failed: document {doc_id} not found",
-                severity="WARNING"
+                severity="ERROR"
             )
             return jsonify(result), 404
         security_logger.log_event(
@@ -478,14 +482,15 @@ def delete_document(doc_id):
 
 @app.route("/admin/dashboard")
 @require_auth
-@require_role("admin")
+@require_any_role("admin")
 def admin_dashboard():
     security_logger.log_event(
         event_type="DATA_READ",
         user_id=request.user["username"],
         details="Accessed admin dashboard"
     )
-    return render_template("admin.html")
+    # return render_template("admin.html")
+    print("Accessed admin dashboard")
 
 @app.after_request
 def set_security_headers(response):

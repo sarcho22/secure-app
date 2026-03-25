@@ -2,7 +2,6 @@ from functools import wraps
 from flask import request, jsonify
 
 from services.session_manager import SessionManager
-from app import security_logger
 from services.user_manager import get_user_from_username
 
 session_manager = SessionManager()
@@ -21,7 +20,7 @@ def get_current_user():
     return user
 
 
-def require_auth(f):
+def require_auth(f, security_logger):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         user = get_current_user()
@@ -36,18 +35,17 @@ def require_auth(f):
         return f(*args, **kwargs)
     return decorated_function
 
-
-def require_role(role):
-    def decorator(f):
+def require_any_role(*allowed_roles):
+    def decorator(f, security_logger):
         @wraps(f)
         def decorated_function(*args, **kwargs):
-            user = request.user # already set by require_auth
+            user = request.user  # already set by require_auth
 
-            if user.get("role") != role:
+            if user["role"] not in allowed_roles:
                 security_logger.log_event(
                     event_type="AUTHORIZATION_FAILURE",
                     user_id=user["username"],
-                    details=f"User '{user['username']}' attempted to access role '{role}' resource",
+                    details=f"Role '{user['role']}' not allowed. Required: {allowed_roles}",
                     severity="WARNING"
                 )
                 return jsonify({"error": "Forbidden"}), 403
