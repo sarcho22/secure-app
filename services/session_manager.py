@@ -64,3 +64,17 @@ class SessionManager:
         if token in sessions:
             del sessions[token]
             self.save_sessions(sessions)
+
+    def destroy_user_sessions(self, username):
+        data = load_json(config.SESSIONS_FILE)
+        sessions = data.get("sessions", {})
+
+        tokens_to_delete = []
+        for token, session in sessions.items():
+            if session.get("username") == username:
+                tokens_to_delete.append(token)
+
+        for token in tokens_to_delete:
+            del sessions[token]
+
+        save_json(config.SESSIONS_FILE, {"sessions": sessions})

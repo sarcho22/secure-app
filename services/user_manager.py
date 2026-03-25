@@ -5,6 +5,8 @@ Contains authentication-related business logic.
 
 import bcrypt
 import time
+import secrets
+import hashlib
 
 from services.validation import validate_username, validate_password_strength, validate_email
 from services.storage import save_json, load_json
@@ -70,7 +72,7 @@ def authenticate_user(username, password):
     return {"error": "Invalid username or password"}
 
 def promote_user(target_username):
-    data = load_json(config.USERS_FILE, {"users": []})
+    data = load_json(config.USERS_FILE)
 
     for user in data["users"]:
         if user["username"] == target_username:
@@ -91,6 +93,100 @@ def get_user_from_username(username):
         if user['username'] == username:
             return user
     return None
+
+def get_user_from_email(email):
+    data = load_json(config.USERS_FILE)
+    for user in data["users"]:
+        if user["email"].lower() == email.lower():
+            return user
+    return None
+
+
+def load_password_resets():
+    data = load_json(config.PASSWORD_RESETS_FILE)
+    return data.get("resets", [])
+
+
+def save_password_resets(resets):
+    save_json(config.PASSWORD_RESETS_FILE, {"resets": resets})
+
+
+def hash_reset_token(token):
+    return hashlib.sha256(token.encode()).hexdigest()
+
+
+def create_password_reset_token(email):
+    user = get_user_from_email(email)
+    if user is None:
+        return None
+
+    raw_token = secrets.token_urlsafe(32)
+    token_hash = hash_reset_token(raw_token)
+
+    resets = load_password_resets()
+    resets.append({
+        "username": user["username"],
+        "email": user["email"],
+        "token_hash": token_hash,
+        "expires_at": time.time() + config.RESET_TOKEN_EXPIRY_SECONDS,
+        "used": False,
+        "created_at": time.time()
+    })
+    save_password_resets(resets)
+
+    return {
+        "username": user["username"],
+        "email": user["email"],
+        "token": raw_token
+    }
+
+
+def update_user_password(username, new_password):
+    data = load_json(config.USERS_FILE)
+
+    for user in data["users"]:
+        if user["username"] == username:
+            salt = bcrypt.gensalt(rounds=12)
+            hashed = bcrypt.hashpw(new_password.encode('utf-8'), salt)
+            user["password_hash"] = hashed.decode('utf-8')
+
+            if "failed_attempts" in user:
+                user["failed_attempts"] = 0
+            if "lockout_until" in user:
+                user["lockout_until"] = 0
+
+            save_json(config.USERS_FILE, data)
+            return {"success": True}
+
+    return {"error": "User not found"}
+
+
+def reset_password_with_token(raw_token, new_password):
+    token_hash = hash_reset_token(raw_token)
+    resets = load_password_resets()
+
+    for reset in resets:
+        if reset["token_hash"] == token_hash:
+            if reset["used"]:
+                return {"error": "Token already used"}
+
+            if time.time() > reset["expires_at"]:
+                return {"error": "Token expired"}
+
+            result = update_user_password(reset["username"], new_password)
+            if "error" in result:
+                return result
+
+            reset["used"] = True
+            reset["used_at"] = time.time()
+            save_password_resets(resets)
+
+            return {
+                "success": True,
+                "username": reset["username"]
+            }
+
+    return {"error": "Invalid token"}
 
 def username_exists(username):
     return get_user_from_username(username) is not None
@@ -152,5 +248,5 @@ def record_failed_login(user):
     update_user(user)
 
 def get_all_users():
-    data = load_json(config.USERS_FILE, {"users": []})
+    data = load_json(config.USERS_FILE)
     return data["users"]

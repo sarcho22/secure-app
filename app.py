@@ -1,11 +1,14 @@
 from flask import Flask, redirect, request, jsonify, make_response, render_template, send_file
-import config, io, os
+import config, io, os, smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from services.storage import save_json
-from services.user_manager import register_user, authenticate_user, get_all_users, promote_user
+from services.user_manager import register_user, authenticate_user, get_all_users, promote_user, create_password_reset_token, reset_password_with_token
+from services.validation import validate_password_strength
 from services.security_logger import SecurityLogger
 from services.session_manager import SessionManager
 from services.document_manager import DocumentManager
-from services.authz import require_auth, require_any_role, get_current_user
+from services.authz import require_auth, require_any_role
 
 app = Flask(__name__)
 
@@ -28,7 +31,43 @@ def ensure_app_files():
     if not os.path.exists(config.DOCUMENTS_FILE):
         save_json(config.DOCUMENTS_FILE, {"documents": []})
 
+    if not os.path.exists(config.PASSWORD_RESETS_FILE):
+        save_json(config.PASSWORD_RESETS_FILE, {"resets": []})
+
 ensure_app_files()
+
+def send_password_reset_email(to_email, reset_link):
+    subject = "Password Reset Request"
+
+    body = f"""
+A request was made to reset your password.
+
+Click the link below to reset your password:
+{reset_link}
+
+This link will expire in 30 minutes.
+
+If you did not request this, you can ignore this email.
+""".strip()
+
+    msg = MIMEMultipart()
+    msg["From"] = config.SMTP_FROM
+    msg["To"] = to_email
+    msg["Subject"] = subject
+    msg.attach(MIMEText(body, "plain"))
+
+    try:
+        with smtplib.SMTP(config.SMTP_HOST, config.SMTP_PORT) as server:
+            server.starttls()
+            server.login(config.SMTP_USERNAME, config.SMTP_PASSWORD)
+            server.sendmail(config.SMTP_FROM, to_email, msg.as_string())
+
+        print(f"[EMAIL SENT] to {to_email}")
+
+    except Exception as e:
+        print(f"[EMAIL ERROR] {e}")
+        print(f"[RESET LINK] {reset_link}")
+
 
 @app.route("/")
 def home():
@@ -91,6 +130,105 @@ def register():
     )
 
     return jsonify(result), 201
+
+@app.route("/forgot-password", methods=["POST"])
+def forgot_password():
+    data = request.get_json(silent=True) or request.form
+    email = data.get("email", "").strip()
+
+    if not email:
+        security_logger.log_event(
+            event_type="INPUT_VALIDATION_FAILURE",
+            user_id="anonymous",
+            details="Password reset request missing email",
+            severity="WARNING"
+        )
+        return jsonify({"error": "Email is required"}), 400
+
+    reset_info = create_password_reset_token(email)
+
+    if reset_info is not None:
+        reset_link = f"{config.BASE_URL}/reset-password-page?token={reset_info['token']}"
+        send_password_reset_email(reset_info["email"], reset_link)
+
+        security_logger.log_event(
+            event_type="PASSWORD_RESET_REQUEST",
+            user_id=reset_info["username"],
+            details="Password reset email requested"
+        )
+
+    return jsonify({
+        "success": True,
+        "message": "If that account exists, a reset email has been sent."
+    }), 200
+
+@app.route("/reset-password-page", methods=["GET"])
+def reset_password_page():
+    token = request.args.get("token", "")
+    return render_template("reset_password.html", token=token)
+
+@app.route("/forgot-password-page")
+def forgot_password_page():
+    return render_template("forgot_password.html")
+
+@app.route("/reset-password", methods=["POST"])
+def reset_password():
+    data = request.get_json(silent=True) or request.form
+
+    token = data.get("token", "").strip()
+    new_password = data.get("new_password", "")
+    confirm_password = data.get("confirm_password", "")
+
+    if not token:
+        security_logger.log_event(
+            event_type="SUSPICIOUS_ACTIVITY",
+            user_id="anonymous",
+            details="Password reset attempted without token",
+            severity="WARNING"
+        )
+        return jsonify({"error": "Reset token is required"}), 400
+
+    if new_password != confirm_password:
+        security_logger.log_event(
+            event_type="INPUT_VALIDATION_FAILURE",
+            user_id="anonymous",
+            details="Password reset failed: passwords do not match",
+            severity="WARNING"
+        )
+        return jsonify({"error": "Passwords do not match"}), 400
+    
+    if not validate_password_strength(new_password):
+        security_logger.log_event(
+            event_type="INPUT_VALIDATION_FAILURE",
+            user_id="anonymous",
+            details="Password reset failed: password did not meet policy",
+            severity="WARNING"
+        )
+        return jsonify({"error": "Password does not meet requirements"}), 400
+
+    result = reset_password_with_token(token, new_password)
+
+    if "error" in result:
+        security_logger.log_event(
+            event_type="SUSPICIOUS_ACTIVITY",
+            user_id="anonymous",
+            details=f"Password reset failed: {result['error']}",
+            severity="WARNING"
+        )
+        return jsonify(result), 400
+
+    session_manager.destroy_user_sessions(result["username"])
+
+    security_logger.log_event(
+        event_type="PASSWORD_CHANGE",
+        user_id=result["username"],
+        details="Password successfully changed via reset flow"
+    )
+
+    return jsonify({
+        "success": True,
+        "message": "Password has been reset successfully"
+    }), 200
 
 @app.route("/login", methods=["POST"])
 def login():

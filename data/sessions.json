@@ -1,3 +1,12 @@
 {
-    "sessions": {}
+    "sessions": {
+        "D5zo19LK8QBpvDvOl57ImFLro43g3TzlDUKAIKqKwIU": {
+            "token": "D5zo19LK8QBpvDvOl57ImFLro43g3TzlDUKAIKqKwIU",
+            "username": "resetpasswordtest",
+            "created_at": 1774476195.044074,
+            "last_activity": 1774476195.082487,
+            "ip_address": "127.0.0.1",
+            "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36 OPR/128.0.0.0 (Edition std-2)"
+        }
+    }
 }

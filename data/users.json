@@ -26,6 +26,15 @@
             "role": "user",
             "failed_attempts": 0,
             "locked_until": null
+        },
+        {
+            "username": "resetpasswordtest",
+            "email": "5fzsm.test@inbox.testmail.app",
+            "password_hash": "$2b$12$Y3R8QXTn7XXc/oURfyENYOFCNNOHk/GFJ1bEHr9s8ezwHHotjaVPe",
+            "created_at": 1774475841.9698648,
+            "role": "guest",
+            "failed_attempts": 0,
+            "locked_until": null
         }
     ]
 }
