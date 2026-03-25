@@ -1,22 +1,35 @@
-"""
-Structured security event logging.
-"""
-
-# import logging
-
+import logging
+from flask import request
+import json
+from datetime import datetime
 
 class SecurityLogger:
 
-    def __init__(self):
-        """
-        Paste logger setup from PDF here.
-        - Configure file handler
-        - Define format
-        """
-        pass
+    def __init__(self, log_file='logs/security.log'):
+        self.logger = logging.getLogger('security')
+        self.logger.setLevel(logging.INFO)
+        handler = logging.FileHandler(log_file)
+        formatter = logging.Formatter(
+            '%(asctime)s - %(levelname)s - %(message)s'
+        )
+        handler.setFormatter(formatter)
+        self.logger.addHandler(handler)
 
     def log_event(self, event_type, user_id, details, severity='INFO'):
-        """
-        Paste log_event method from PDF here.
-        """
-        pass
+        log_entry = {
+            'timestamp': datetime.utcnow().isoformat(),
+            'event_type': event_type,
+            'user_id': user_id,
+            'ip_address': request.remote_addr,
+            'user_agent': request.headers.get('User-Agent'),
+            'details': details,
+            'severity': severity
+        }
+        if severity == 'CRITICAL':
+            self.logger.critical(json.dumps(log_entry))
+        elif severity == 'ERROR':
+            self.logger.error(json.dumps(log_entry))
+        elif severity == 'WARNING':
+            self.logger.warning(json.dumps(log_entry))
+        else:
+            self.logger.info(json.dumps(log_entry))
