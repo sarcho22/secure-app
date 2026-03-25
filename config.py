@@ -1,7 +1,5 @@
 import os
 
-print("CONFIG FILE LOADED", flush=True)
-
 # Base directory of project
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
