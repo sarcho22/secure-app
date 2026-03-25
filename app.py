@@ -87,7 +87,7 @@ def register():
     security_logger.log_event(
         event_type="REGISTER_SUCCESS",
         user_id=username,
-        details="User registered successfully"
+        details="User registered successfully with guest role"
     )
 
     return jsonify(result), 201
@@ -429,17 +429,27 @@ def unshare_document():
 
 @app.route("/shares/<doc_id>", methods=["GET"])
 @require_auth(security_logger)
+@require_any_role(security_logger, "user", "admin")
 def list_shares(doc_id):
-    result = document_manager.list_shares_for_doc(doc_id)
+    result = document_manager.list_shares_for_doc(request.user["username"], doc_id)
 
     if "error" in result:
+        if result["error"] == "Document not found":
+            security_logger.log_event(
+                event_type="DATA_READ",
+                user_id=request.user["username"],
+                details=f"List shares failed: document {doc_id} not found",
+                severity="WARNING"
+            )
+            return jsonify(result), 404
+
         security_logger.log_event(
-            event_type="DATA_READ",
+            event_type="AUTHORIZATION_FAILURE",
             user_id=request.user["username"],
-            details=f"List shares failed: document {doc_id} not found",
-            severity="ERROR"
+            details=f"Unauthorized share list access for document {doc_id}",
+            severity="WARNING"
         )
-        return jsonify(result), 404
+        return jsonify(result), 403
 
     security_logger.log_event(
         event_type="DATA_READ",

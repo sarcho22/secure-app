@@ -10,7 +10,7 @@ import secrets
 import config
 from services.storage import load_json, save_json
 from services.encrypted_storage import EncryptedStorage
-from services.user_manager import username_exists
+from services.user_manager import username_exists, get_user_from_username
 from werkzeug.utils import secure_filename
 
 
@@ -238,10 +238,20 @@ class DocumentManager:
 
         return {"error": "Document not found"}
 
-    def list_shares_for_doc(self, doc_id):
+    def list_shares_for_doc(self, requesting_username, doc_id):
         document = self.get_document_by_id(doc_id)
         if document is None:
             return {"error": "Document not found"}
+
+        requesting_user = get_user_from_username(requesting_username)
+        if requesting_user is None:
+            return {"error": "Forbidden"}
+
+        is_admin = requesting_user.get("role") == "admin"
+        is_owner = document["owner"] == requesting_username
+
+        if not is_admin and not is_owner:
+            return {"error": "Forbidden"}
 
         share_list = []
         for username, info in document.get("shared_with", {}).items():
