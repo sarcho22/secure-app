@@ -40,7 +40,7 @@ def register_user(username, email, password):
         "email": email,
         "password_hash": hashed.decode('utf-8'),
         "created_at": time.time(),
-        "role": "user",
+        "role": "guest",
         "failed_attempts": 0,
         "locked_until": None
     }
@@ -68,6 +68,22 @@ def authenticate_user(username, password):
 
     record_failed_login(user)
     return {"error": "Invalid username or password"}
+
+def promote_user(target_username):
+    data = load_json(config.USERS_FILE, {"users": []})
+
+    for user in data["users"]:
+        if user["username"] == target_username:
+            if user["role"] == "admin":
+                return {"error": "Cannot change admin role"}
+            if user["role"] == "user":
+                return {"error": "User is already a user"}
+
+            user["role"] = "user"
+            save_json(config.USERS_FILE, data)
+            return {"success": True, "message": f"{target_username} promoted to user"}
+
+    return {"error": "User not found"}
 
 def get_user_from_username(username):
     user_data = load_json(config.USERS_FILE)
@@ -134,3 +150,7 @@ def record_failed_login(user):
         user["failed_attempts"] = 0
 
     update_user(user)
+
+def get_all_users():
+    data = load_json(config.USERS_FILE, {"users": []})
+    return data["users"]

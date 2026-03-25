@@ -1,7 +1,7 @@
 from flask import Flask, redirect, request, jsonify, make_response, render_template, send_file
 import config, io, os
 from services.storage import save_json
-from services.user_manager import register_user, authenticate_user
+from services.user_manager import register_user, authenticate_user, get_all_users, promote_user
 from services.security_logger import SecurityLogger
 from services.session_manager import SessionManager
 from services.document_manager import DocumentManager
@@ -43,12 +43,12 @@ def register_page():
     return render_template("register.html")
 
 @app.route("/dashboard")
-@require_auth
+@require_auth(security_logger)
 def dashboard():
     return render_template("dashboard.html")
 
 @app.route("/documents-page")
-@require_auth
+@require_auth(security_logger)
 def documents_page():
     return render_template("documents.html")
 
@@ -160,7 +160,7 @@ def login():
     return response
 
 @app.route("/logout", methods=["POST"])
-@require_auth
+@require_auth(security_logger)
 def logout():
     token = request.cookies.get("session_token")
     if token:
@@ -181,18 +181,17 @@ def logout():
 
 
 @app.route("/me", methods=["GET"])
-@require_auth
+@require_auth(security_logger)
 def me():
-    user = get_current_user()
     return jsonify({
-        "username": user["username"],
-        "email": user["email"],
-        "role": user["role"]
+        "username": request.user["username"],
+        "email": request.user["email"],
+        "role": request.user["role"]
     })
 
 @app.route("/upload", methods=["POST"])
-@require_auth
-@require_any_role("user", "admin")
+@require_auth(security_logger)
+@require_any_role(security_logger, "user", "admin")
 def upload():
     if "file" not in request.files:
         security_logger.log_event(
@@ -238,10 +237,9 @@ def upload():
 
 
 @app.route("/documents", methods=["GET"])
-@require_auth
+@require_auth(security_logger)
 def list_documents():
-    user = get_current_user()
-    documents = document_manager.get_user_documents(user["username"])
+    documents = document_manager.get_user_documents(request.user["username"])
 
     security_logger.log_event(
         event_type="DATA_READ",
@@ -249,12 +247,10 @@ def list_documents():
         details="User viewed document list"
     )
 
-    return jsonify({
-        "documents": documents
-    })
+    return jsonify({"documents": documents})
 
 @app.route("/download/<doc_id>", methods=["GET"])
-@require_auth
+@require_auth(security_logger)
 def download(doc_id):
     result = document_manager.get_file(request.user["username"], doc_id)
 
@@ -291,8 +287,8 @@ def download(doc_id):
     )
 
 @app.route("/replace", methods=["POST"])
-@require_auth
-@require_any_role("user", "admin")
+@require_auth(security_logger)
+@require_any_role(security_logger, "user", "admin")
 def replace_document():
     if "file" not in request.files:
         security_logger.log_event(
@@ -343,7 +339,8 @@ def replace_document():
     return jsonify(result), 200
 
 @app.route("/share", methods=["POST"])
-@require_auth
+@require_auth(security_logger)
+@require_any_role(security_logger, "user", "admin")
 def share_document():
     data = request.get_json(silent=True) or request.form
 
@@ -387,7 +384,8 @@ def share_document():
 
 
 @app.route("/unshare", methods=["POST"])
-@require_auth
+@require_auth(security_logger)
+@require_any_role(security_logger, "user", "admin")
 def unshare_document():
     data = request.get_json(silent=True) or request.form
 
@@ -430,7 +428,7 @@ def unshare_document():
 
 
 @app.route("/shares/<doc_id>", methods=["GET"])
-@require_auth
+@require_auth(security_logger)
 def list_shares(doc_id):
     result = document_manager.list_shares_for_doc(doc_id)
 
@@ -451,8 +449,8 @@ def list_shares(doc_id):
     return jsonify(result), 200
 
 @app.route("/documents/<doc_id>", methods=["DELETE"])
-@require_auth
-@require_any_role("user", "admin")
+@require_auth(security_logger)
+@require_any_role(security_logger, "user", "admin")
 def delete_document(doc_id):
     result = document_manager.delete_document(request.user["username"], doc_id)
 
@@ -481,16 +479,79 @@ def delete_document(doc_id):
     return jsonify(result), 200
 
 @app.route("/admin/dashboard")
-@require_auth
-@require_any_role("admin")
+@require_auth(security_logger)
+@require_any_role(security_logger, "admin")
 def admin_dashboard():
     security_logger.log_event(
         event_type="DATA_READ",
         user_id=request.user["username"],
         details="Accessed admin dashboard"
     )
-    # return render_template("admin.html")
-    print("Accessed admin dashboard")
+    return render_template("admin.html")
+
+@app.route("/admin/users", methods=["GET"])
+@require_auth(security_logger)
+@require_any_role(security_logger, "admin")
+def admin_list_users():
+    users = get_all_users()
+
+    security_logger.log_event(
+        event_type="DATA_READ",
+        user_id=request.user["username"],
+        details="Admin viewed all users"
+    )
+
+    safe_users = []
+    for user in users:
+        safe_users.append({
+            "username": user["username"],
+            "email": user["email"],
+            "role": user["role"]
+        })
+
+    return jsonify({"users": safe_users}), 200
+
+@app.route("/admin/promote", methods=["POST"])
+@require_auth(security_logger)
+@require_any_role(security_logger, "admin")
+def admin_promote_user():
+    data = request.get_json(silent=True) or request.form
+    target_username = data.get("target_username", "").strip()
+
+    if not target_username:
+        security_logger.log_event(
+            event_type="INPUT_VALIDATION_FAILURE",
+            user_id=request.user["username"],
+            details="Admin promotion failed: missing target username",
+            severity="WARNING"
+        )
+        return jsonify({"error": "Target username required"}), 400
+
+    result = promote_user(target_username)
+
+    if "error" in result:
+        security_logger.log_event(
+            event_type="INPUT_VALIDATION_FAILURE",
+            user_id=request.user["username"],
+            details=f"Admin promotion failed for {target_username}: {result['error']}",
+            severity="WARNING"
+        )
+        return jsonify(result), 400
+
+    security_logger.log_event(
+        event_type="SECURITY_CONFIGURATION_CHANGE",
+        user_id=request.user["username"],
+        details=f"Promoted {target_username} from guest to user"
+    )
+
+    return jsonify(result), 200
+
+# Force HTTPS:
+@app.before_request
+def require_https():
+    if not request.is_secure and not app.debug:
+        url = request.url.replace("http://", "https://", 1)
+        return redirect(url, code=301)
 
 @app.after_request
 def set_security_headers(response):
@@ -536,9 +597,3 @@ if __name__ == '__main__':
             host='0.0.0.0',
             port=5000)
 
-# Force HTTPS:
-@app.before_request
-def require_https():
-    if not request.is_secure and not app.debug:
-        url = request.url.replace("http://", "https://", 1)
-        return redirect(url, code=301)
