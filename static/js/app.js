@@ -218,10 +218,10 @@ function setupDashboard() {
     }
 
     if (docsBtn) {
-    docsBtn.addEventListener("click", () => {
-        window.location.href = "/documents-page";
-    });
-}
+        docsBtn.addEventListener("click", () => {
+            window.location.href = "/documents-page";
+        });
+    }
 }
 
 function setupDocumentPage() {

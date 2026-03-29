@@ -1,20 +1,4 @@
 {
     "sessions": {
-        "wDkHsv2lONXC8ruxfXMEeGbHbcG8i9hMfJroyd3vDfc": {
-            "token": "wDkHsv2lONXC8ruxfXMEeGbHbcG8i9hMfJroyd3vDfc",
-            "username": "sarchotesting",
-            "created_at": 1774814700.6988149,
-            "last_activity": 1774815049.5844235,
-            "ip_address": "127.0.0.1",
-            "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
-        },
-        "hnr7GDc2sV9Hzyd-bMNbGjTfTpsT8RqjCjNpPeTf-ec": {
-            "token": "hnr7GDc2sV9Hzyd-bMNbGjTfTpsT8RqjCjNpPeTf-ec",
-            "username": "sarchotesting",
-            "created_at": 1774815074.2588468,
-            "last_activity": 1774815119.9054968,
-            "ip_address": "127.0.0.1",
-            "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
-        }
     }
 }
