@@ -11,6 +11,13 @@ import re
 import os.path
 from werkzeug.utils import secure_filename
 
+ALLOWED_EXTENSIONS = {"txt", "pdf", "png", "jpg", "jpeg"}
+ALLOWED_MIME_TYPES = {
+    "text/plain",
+    "application/pdf",
+    "image/png",
+    "image/jpeg"
+}
 
 def validate_username(username):
     # 3-20 chars, alphanumeric + underscore
@@ -49,10 +56,6 @@ def validate_email(email):
         return True
     return False
 
-def sanitize_input(user_input):
-    # Escape HTML special characters
-    return html.escape(user_input)
-
 def sanitize_output(data):
     """Sanitize before rendering"""
     if isinstance(data, str):
@@ -62,10 +65,11 @@ def sanitize_output(data):
 def safe_filename(filename):
     # remove path traversal attempts
     filename = os.path.basename(filename)
+    filename = secure_filename(filename)
 
-    # allow only alphanumeric, dash, underscore, dot
-    if not re.match(r'^[\w\-\.]', filename):
+    if not filename:
         raise ValueError("Invalid filename")
+    
     return filename
 
 def safe_file_path(user_path, base_dir):
@@ -79,3 +83,10 @@ def safe_file_path(user_path, base_dir):
         raise ValueError("Path traversal detected")
     
     return full_path
+
+def allowed_file(filename):
+    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
+def allowed_mime_type(mime_type):
+    return mime_type in ALLOWED_MIME_TYPES

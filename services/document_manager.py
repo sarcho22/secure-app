@@ -11,7 +11,7 @@ import config
 from services.storage import load_json, save_json
 from services.encrypted_storage import EncryptedStorage
 from services.user_manager import username_exists, get_user_from_username
-from werkzeug.utils import secure_filename
+from services.validation import safe_filename
 
 
 class DocumentManager:
@@ -84,8 +84,9 @@ class DocumentManager:
         return visible_docs
 
     def upload_file(self, username, file):
-        filename = secure_filename(file.filename)
-        if not filename:
+        try:
+            filename = safe_filename(file.filename)
+        except ValueError:
             return {"error": "Invalid filename"}
         
         doc_id = self.generate_doc_id()

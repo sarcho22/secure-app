@@ -4,17 +4,19 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from services.storage import save_json
 from services.user_manager import register_user, authenticate_user, get_all_users, promote_user, create_password_reset_token, reset_password_with_token
-from services.validation import validate_password_strength
+from services.validation import validate_password_strength, allowed_file, allowed_mime_type
 from services.security_logger import SecurityLogger
 from services.session_manager import SessionManager
 from services.document_manager import DocumentManager
 from services.authz import require_auth, require_any_role
+from werkzeug.exceptions import RequestEntityTooLarge
 from collections import defaultdict, deque
 from time import time
 
 app = Flask(__name__)
 
 app.config["SECRET_KEY"] = config.SECRET_KEY
+app.config["MAX_CONTENT_LENGTH"] = 5 * 1024 * 1024  # 5 MB
 
 session_manager = SessionManager()
 document_manager = DocumentManager()
@@ -227,6 +229,10 @@ def reset_password():
         "message": "Password has been reset successfully"
     }), 200
 
+@app.errorhandler(RequestEntityTooLarge)
+def handle_large_file(error):
+    return jsonify({"error": "File is too large. Maximum size is 5 MB."}), 413
+
 def get_client_ip():
     forwarded_for = request.headers.get("X-Forwarded-For", "")
     if forwarded_for:
@@ -388,10 +394,25 @@ def upload():
         )
         return jsonify({"error": "No file selected"}), 400
 
-    result = document_manager.upload_file(
-        request.user["username"],
-        file
-    )
+    if not allowed_file(file.filename):
+        security_logger.log_event(
+            event_type="INPUT_VALIDATION_FAILURE",
+            user_id=request.user["username"],
+            details=f"Upload failed: invalid file extension for {file.filename}",
+            severity="ERROR"
+        )
+        return jsonify({"error": "Invalid file type"}), 400
+
+    if not allowed_mime_type(file.mimetype):
+        security_logger.log_event(
+            event_type="INPUT_VALIDATION_FAILURE",
+            user_id=request.user["username"],
+            details=f"Upload failed: invalid MIME type {file.mimetype}",
+            severity="ERROR"
+        )
+        return jsonify({"error": "Invalid file type"}), 400
+
+    result = document_manager.upload_file(request.user["username"], file)
 
     if "error" in result:
         security_logger.log_event(
@@ -405,7 +426,7 @@ def upload():
     security_logger.log_event(
         event_type="DATA_CREATE",
         user_id=request.user["username"],
-        details=f"Uploaded document: {file.filename}"
+        details=f"Uploaded document: {result['filename']}"
     )
 
     return jsonify(result), 201
@@ -444,7 +465,8 @@ def download(doc_id):
             details=f"Unauthorized download attempt for document {doc_id}",
             severity="WARNING"
         )
-        return jsonify(result), 403
+        # unauthorized but we dont want them to know about existence of docs so we will say not found
+        return jsonify({"error": "Document not found"}), 404
 
     file_bytes = result["data"]
     filename = result["filename"]
@@ -504,7 +526,8 @@ def replace_document():
             details=f"Unauthorized replace attempt for document {doc_id}",
             severity="WARNING"
         )
-        return jsonify(result), 403
+        # dont want to let them know doc exists
+        return jsonify({"error": "Document not found"}), 404
     
     security_logger.log_event(
         event_type="DATA_UPDATE",
@@ -541,7 +564,8 @@ def share_document():
                 details=f"Unauthorized share attempt for document {doc_id}",
                 severity="WARNING"
             )
-            return jsonify(result), 403
+            # dont let them know it exists
+            return jsonify({"error": "Document not found"}), 404
         security_logger.log_event(
             event_type="INPUT_VALIDATION_FAILURE",
             user_id=request.user["username"],
@@ -585,7 +609,8 @@ def unshare_document():
                 details=f"Unauthorized unshare attempt for document {doc_id}",
                 severity="WARNING"
             )
-            return jsonify(result), 403
+            # dont let them know doc exists
+            return jsonify({"error": "Document not found"}), 404
         security_logger.log_event(
             event_type="INPUT_VALIDATION_FAILURE",
             user_id=request.user["username"],
@@ -624,7 +649,8 @@ def list_shares(doc_id):
             details=f"Unauthorized share list access for document {doc_id}",
             severity="WARNING"
         )
-        return jsonify(result), 403
+        # dont let them know doc exists
+        return jsonify({"error": "Document not found"}), 404
 
     security_logger.log_event(
         event_type="DATA_READ",
@@ -654,7 +680,8 @@ def delete_document(doc_id):
             details=f"Unauthorized delete attempt for document {doc_id}",
             severity="WARNING"
         )
-        return jsonify(result), 403
+        # dont let them know it exists
+        return jsonify({"error": "Document not found"}), 404
 
     security_logger.log_event(
         event_type="DATA_DELETE",
