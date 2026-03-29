@@ -507,6 +507,24 @@ def replace_document():
         )
         return jsonify({"error": "No file selected"}), 400
 
+    if not allowed_file(file.filename):
+        security_logger.log_event(
+            event_type="INPUT_VALIDATION_FAILURE",
+            user_id=request.user["username"],
+            details=f"Replace failed: invalid file extension for {file.filename}",
+            severity="ERROR"
+        )
+        return jsonify({"error": "Invalid file type"}), 400
+
+    if not allowed_mime_type(file.mimetype):
+        security_logger.log_event(
+            event_type="INPUT_VALIDATION_FAILURE",
+            user_id=request.user["username"],
+            details=f"Replace failed: invalid MIME type {file.mimetype}",
+            severity="ERROR"
+        )
+        return jsonify({"error": "Invalid file type"}), 400
+
     doc_id = request.form.get("doc_id", "").strip()
 
     result = document_manager.replace_file(request.user["username"], doc_id, file)
@@ -771,7 +789,7 @@ def set_security_headers(response):
     # Content Security Policy
     response.headers['Content-Security-Policy'] = (
         "default-src 'self'; "
-        "script-src 'self' 'unsafe-inline'; " # Avoid unsafe-inline in production
+        "script-src 'self'; " # Avoid unsafe-inline in production
         "style-src 'self' 'unsafe-inline'; "
         "img-src 'self' data:; "
         "font-src 'self'; "

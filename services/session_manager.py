@@ -11,8 +11,10 @@ import config
 
 
 class SessionManager:
-    def __init__(self, timeout=1800): # 30 min
+    def __init__(self, timeout=1800, bind_ip=True, bind_user_agent=True):  # 30 min
         self.timeout = timeout
+        self.bind_ip = bind_ip
+        self.bind_user_agent = bind_user_agent
         self.sessions_file = config.SESSIONS_FILE
 
     def load_sessions(self):
@@ -21,6 +23,12 @@ class SessionManager:
     
     def save_sessions(self, sessions):
         save_json(self.sessions_file, {"sessions": sessions})
+
+    def get_client_ip(self):
+        forwarded_for = request.headers.get("X-Forwarded-For", "")
+        if forwarded_for:
+            return forwarded_for.split(",")[0].strip()
+        return request.remote_addr or "unknown"
 
     def create_session(self, username):
         # generate session ID
@@ -31,8 +39,8 @@ class SessionManager:
             'username': username,
             'created_at': time.time(),
             'last_activity': time.time(),
-            'ip_address': request.remote_addr,
-            'user_agent': request.headers.get('User-Agent')
+            'ip_address': self.get_client_ip(),
+            'user_agent': request.headers.get("User-Agent", "")
         }
 
         sessions = self.load_sessions()
@@ -49,6 +57,17 @@ class SessionManager:
         
         session = sessions[token]
         if time.time() - session['last_activity'] > self.timeout:
+            self.destroy_session(token)
+            return None
+        
+        current_ip = self.get_client_ip()
+        current_user_agent = request.headers.get("User-Agent", "")
+
+        if self.bind_ip and session.get("ip_address") != current_ip:
+            self.destroy_session(token)
+            return None
+
+        if self.bind_user_agent and session.get("user_agent") != current_user_agent:
             self.destroy_session(token)
             return None
         
