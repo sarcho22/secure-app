@@ -207,6 +207,7 @@ function setupResetPasswordForm() {
 function setupDashboard() {
     const welcomeText = document.getElementById("welcomeText");
     const logoutBtn = document.getElementById("logoutBtn");
+    const docsBtn = document.getElementById("docsBtn")
 
     if (welcomeText) {
         loadCurrentUser();
@@ -215,6 +216,12 @@ function setupDashboard() {
     if (logoutBtn) {
         logoutBtn.addEventListener("click", logout);
     }
+
+    if (docsBtn) {
+    docsBtn.addEventListener("click", () => {
+        window.location.href = "/documents-page";
+    });
+}
 }
 
 function setupDocumentPage() {
