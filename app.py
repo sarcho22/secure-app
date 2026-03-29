@@ -9,6 +9,8 @@ from services.security_logger import SecurityLogger
 from services.session_manager import SessionManager
 from services.document_manager import DocumentManager
 from services.authz import require_auth, require_any_role
+from collections import defaultdict, deque
+from time import time
 
 app = Flask(__name__)
 
@@ -17,6 +19,11 @@ app.config["SECRET_KEY"] = config.SECRET_KEY
 session_manager = SessionManager()
 document_manager = DocumentManager()
 security_logger = SecurityLogger()
+
+LOGIN_RATE_LIMIT_MAX_ATTEMPTS = 10
+LOGIN_RATE_LIMIT_WINDOW_SECONDS = 60
+login_attempts_by_ip = defaultdict(deque)
+
 
 def ensure_app_files():
     os.makedirs(config.DATA_DIR, exist_ok=True)
@@ -177,7 +184,6 @@ def reset_password():
 
     token = data.get("token", "").strip()
     new_password = data.get("new_password", "")
-    confirm_password = data.get("confirm_password", "")
 
     if not token:
         security_logger.log_event(
@@ -187,15 +193,6 @@ def reset_password():
             severity="WARNING"
         )
         return jsonify({"error": "Reset token is required"}), 400
-
-    if new_password != confirm_password:
-        security_logger.log_event(
-            event_type="INPUT_VALIDATION_FAILURE",
-            user_id="anonymous",
-            details="Password reset failed: passwords do not match",
-            severity="WARNING"
-        )
-        return jsonify({"error": "Passwords do not match"}), 400
     
     if not validate_password_strength(new_password):
         security_logger.log_event(
@@ -230,22 +227,61 @@ def reset_password():
         "message": "Password has been reset successfully"
     }), 200
 
+def get_client_ip():
+    forwarded_for = request.headers.get("X-Forwarded-For", "")
+    if forwarded_for:
+        return forwarded_for.split(",")[0].strip()
+    return request.remote_addr or "unknown"
+
+
+def is_login_rate_limited(ip_address):
+    now = time()
+    attempts = login_attempts_by_ip[ip_address]
+
+    while attempts and now - attempts[0] >= LOGIN_RATE_LIMIT_WINDOW_SECONDS:
+        attempts.popleft()
+
+    return len(attempts) >= LOGIN_RATE_LIMIT_MAX_ATTEMPTS
+
+
+def record_failed_login_attempt(ip_address):
+    login_attempts_by_ip[ip_address].append(time())
+
+
+def clear_login_attempts(ip_address):
+    if ip_address in login_attempts_by_ip:
+        login_attempts_by_ip[ip_address].clear()
+
 @app.route("/login", methods=["POST"])
 def login():
     data = request.get_json(silent=True) or request.form
 
     username = data.get("username", "").strip()
     password = data.get("password", "")
+    ip_address = get_client_ip()
+
+    if is_login_rate_limited(ip_address):
+        security_logger.log_event(
+            event_type="RATE_LIMIT_EXCEEDED",
+            user_id=username or "anonymous",
+            details=f"Too many failed login attempts from IP {ip_address}",
+            severity="WARNING"
+        )
+        return jsonify({
+            "error": "Too many login attempts. Please try again in a minute."
+        }), 429
 
     # log attempt
     security_logger.log_event(
         event_type="LOGIN_ATTEMPT",
         user_id=username,
-        details="User attempted login"
+        details=f"User attempted login from IP {ip_address}"
     )
 
     result = authenticate_user(username, password)
     if "error" in result:
+        record_failed_login_attempt(ip_address)
+
         if result["error"] == "Account is temporarily locked":
             security_logger.log_event(
                 event_type="AUTHENTICATION_FAILURE",
@@ -254,15 +290,16 @@ def login():
                 severity="CRITICAL"
             )
         else:
-        # authentication failure
             security_logger.log_event(
                 event_type="AUTHENTICATION_FAILURE",
                 user_id=username,
                 details=result["error"],
                 severity="WARNING"
             )
+
         return jsonify(result), 401
 
+    clear_login_attempts(ip_address)
     user = result["user"]
     # authentication success
     security_logger.log_event(
@@ -693,6 +730,7 @@ def admin_promote_user():
     )
 
     return jsonify(result), 200
+
 
 # Force HTTPS:
 @app.before_request
