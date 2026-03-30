@@ -51,10 +51,11 @@ class DocumentManager:
 
         shared_with = document.get("shared_with", {})
         info = shared_with.get(username)
+        
         if info is None:
             return None
 
-        return info["role"]
+        return info
 
     def can_view(self, doc_id, username):
         role = self.get_user_role_for_doc(doc_id, username)
