@@ -6,7 +6,7 @@ users, sessions, and docs are cleared before submission so grader can manually t
 
 2. Run the application - Start the app with HTTPS enabled with the following bash command: `python app.py` 
 
-3. Access the app - Open the link in the terminal using your browser (you may need to accept a self-signed certificate warning). Will likely be something like 127.0.0.1:5000
+3. Access the app - Open the link in the terminal using your browser (you may need to accept a self-signed certificate warning). Will likely be something like `127.0.0.1:5000`
 
 4. Basic usage flow
 - register a new account
