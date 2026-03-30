@@ -59,7 +59,7 @@ def register_user(username, email, password):
 def authenticate_user(username, password):
     user = get_user_from_username(username)
     if user is None:
-        return {"error": "Must enter a username"}
+        return {"error": "Username not found"}
 
     if is_account_locked(user):
         return {"error": "Account is temporarily locked"}
