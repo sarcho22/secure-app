@@ -1,3 +1,24 @@
 {
-    "documents": []
+    "documents": [
+        {
+            "doc_id": "bPJLTn61JM0R618KKPaR3g",
+            "owner": "testuser",
+            "filename": "image_2026-03-30_202910265.png",
+            "encrypted_path": "/Users/sarahchoi/Downloads/secure-app/secure-app/data/docs/bPJLTn61JM0R618KKPaR3g.enc",
+            "version": 1,
+            "created_at": 1774916950.774612,
+            "updated_at": 1774916950.774613,
+            "shared_with": {}
+        },
+        {
+            "doc_id": "7TW1YL6jJcos69O1Bdi1GQ",
+            "owner": "testuser",
+            "filename": "image_2026-03-30_202927566.png",
+            "encrypted_path": "/Users/sarahchoi/Downloads/secure-app/secure-app/data/docs/7TW1YL6jJcos69O1Bdi1GQ.enc",
+            "version": 1,
+            "created_at": 1774916968.8918378,
+            "updated_at": 1774916968.8918378,
+            "shared_with": {}
+        }
+    ]
 }
