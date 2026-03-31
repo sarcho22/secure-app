@@ -1,5 +1,12 @@
 {
     "sessions": {
-        
+        "GoM2gQlcRKj0PvunoN2mZempHgGbgUFQf0OW9j9gmvA": {
+            "token": "GoM2gQlcRKj0PvunoN2mZempHgGbgUFQf0OW9j9gmvA",
+            "username": "testuser",
+            "created_at": 1774917280.810524,
+            "last_activity": 1774917310.818593,
+            "ip_address": "127.0.0.1",
+            "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36 OPR/128.0.0.0 (Edition std-2)"
+        }
     }
 }
