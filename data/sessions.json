@@ -1,5 +1,20 @@
 {
     "sessions": {
-        
+        "vL6H4pU9QTUzRx4oxwJkOte6ljISyLbyWsK8JWfe4vg": {
+            "token": "vL6H4pU9QTUzRx4oxwJkOte6ljISyLbyWsK8JWfe4vg",
+            "username": "testuser",
+            "created_at": 1774917028.0770009,
+            "last_activity": 1774917096.439337,
+            "ip_address": "127.0.0.1",
+            "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36 OPR/128.0.0.0 (Edition std-2)"
+        },
+        "RAfKuGZOMNJdSWOm7gvGMV2FTzFsZcmN2G3DPLRnBRc": {
+            "token": "RAfKuGZOMNJdSWOm7gvGMV2FTzFsZcmN2G3DPLRnBRc",
+            "username": "testuser",
+            "created_at": 1774917089.372473,
+            "last_activity": 1774917093.2276921,
+            "ip_address": "127.0.0.1",
+            "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36 OPR/128.0.0.0 (Edition std-2)"
+        }
     }
 }
