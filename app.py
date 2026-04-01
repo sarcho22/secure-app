@@ -1,5 +1,5 @@
 from flask import Flask, redirect, request, jsonify, make_response, render_template, send_file
-import config, io, os, smtplib
+import config, io, os, smtplib, logging
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from services.storage import save_json
@@ -43,7 +43,27 @@ def ensure_app_files():
     if not os.path.exists(config.PASSWORD_RESETS_FILE):
         save_json(config.PASSWORD_RESETS_FILE, {"resets": []})
 
+def setup_access_log():
+    os.makedirs("logs", exist_ok=True)
+
+    access_logger = logging.getLogger("werkzeug")
+    access_logger.setLevel(logging.INFO)
+
+    # Avoid adding duplicate handlers if app reloads
+    if not any(
+        isinstance(handler, logging.FileHandler) and
+        getattr(handler, "baseFilename", "").endswith("access.log")
+        for handler in access_logger.handlers
+    ):
+        file_handler = logging.FileHandler("logs/access.log")
+        file_handler.setLevel(logging.INFO)
+        file_handler.setFormatter(logging.Formatter(
+            "%(asctime)s - %(message)s"
+        ))
+        access_logger.addHandler(file_handler)
+
 ensure_app_files()
+setup_access_log()
 
 def send_password_reset_email(to_email, reset_link):
     subject = "Password Reset Request"
