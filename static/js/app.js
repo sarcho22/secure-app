@@ -207,7 +207,7 @@ function setupResetPasswordForm() {
 function setupDashboard() {
     const welcomeText = document.getElementById("welcomeText");
     const logoutBtn = document.getElementById("logoutBtn");
-    const docsBtn = document.getElementById("docsBtn")
+    const docsBtn = document.getElementById("docsBtn");
 
     if (welcomeText) {
         loadCurrentUser();
@@ -347,6 +347,15 @@ function setupDocumentActions() {
             await replaceDocumentPrompt(docId);
         } else if (action === "delete") {
             await deleteDocument(docId);
+        } else if (action === "toggle-share-panel") {
+            await toggleSharePanel(docId);
+        } else if (action === "submit-share") {
+            await submitShare(docId);
+        } else if (action === "unshare") {
+            const targetUsername = button.dataset.targetUsername;
+            if (targetUsername) {
+                await unshareDocument(docId, targetUsername);
+            }
         }
     });
 }
@@ -380,10 +389,48 @@ async function loadDocuments() {
             card.innerHTML = `
                 <div class="doc-title">${escapeHtml(doc.filename || "Untitled file")}</div>
                 <div class="doc-meta">Version: ${escapeHtml(String(doc.version ?? 1))}</div>
+
                 <div class="doc-actions">
                     <button class="btn" type="button" data-action="download" data-doc-id="${escapeAttribute(doc.doc_id)}">Download</button>
                     <button class="btn" type="button" data-action="replace" data-doc-id="${escapeAttribute(doc.doc_id)}">Replace</button>
                     <button class="btn" type="button" data-action="delete" data-doc-id="${escapeAttribute(doc.doc_id)}">Delete</button>
+                    <button class="btn" type="button" data-action="toggle-share-panel" data-doc-id="${escapeAttribute(doc.doc_id)}">Share / Access</button>
+                </div>
+
+                <div class="share-panel" id="share-panel-${escapeAttribute(doc.doc_id)}" style="display:none;">
+                    <div class="share-form">
+                        <input
+                            type="text"
+                            class="input share-username"
+                            id="share-username-${escapeAttribute(doc.doc_id)}"
+                            placeholder="Username"
+                        />
+
+                        <select
+                            class="input share-role"
+                            id="share-role-${escapeAttribute(doc.doc_id)}"
+                        >
+                            <option value="viewer">viewer</option>
+                            <option value="editor">editor</option>
+                        </select>
+
+                        <button
+                            class="btn"
+                            type="button"
+                            data-action="submit-share"
+                            data-doc-id="${escapeAttribute(doc.doc_id)}"
+                        >
+                            Share
+                        </button>
+                    </div>
+
+                    <div
+                        class="share-list"
+                        id="share-list-${escapeAttribute(doc.doc_id)}"
+                        style="margin-top:10px;"
+                    >
+                        <p>Access list not loaded.</p>
+                    </div>
                 </div>
             `;
 
@@ -563,4 +610,135 @@ function escapeHtml(value) {
 
 function escapeAttribute(value) {
     return escapeHtml(value);
+}
+function closeAllSharePanels() {
+    document.querySelectorAll(".share-panel").forEach(panel => {
+        panel.style.display = "none";
+    });
+}
+
+async function toggleSharePanel(docId) {
+    const panel = document.getElementById(`share-panel-${docId}`);
+    if (!panel) return;
+
+    const isOpen = panel.style.display === "block";
+
+    closeAllSharePanels();
+
+    if (isOpen) return;
+
+    panel.style.display = "block";
+    await loadShareList(docId);
+}
+
+async function loadShareList(docId) {
+    const list = document.getElementById(`share-list-${docId}`);
+    if (!list) return;
+
+    list.innerHTML = "<p>Loading access list...</p>";
+
+    try {
+        const res = await fetch(`/shares/${encodeURIComponent(docId)}`, {
+            credentials: "include"
+        });
+
+        const data = await parseJsonSafely(res);
+
+        if (!res.ok) {
+            list.innerHTML = `<p>${escapeHtml(data.error || "Could not load access list.")}</p>`;
+            return;
+        }
+
+        if (!data.shares || data.shares.length === 0) {
+            list.innerHTML = "<p>No shared users.</p>";
+            return;
+        }
+
+        list.innerHTML = data.shares.map((entry) => `
+            <div class="doc-card" style="margin-top:8px;">
+                <div class="doc-title">${escapeHtml(entry.username)}</div>
+                <div class="doc-meta">Role: ${escapeHtml(entry.role)}</div>
+                <div class="doc-actions">
+                    <button
+                        class="btn"
+                        type="button"
+                        data-action="unshare"
+                        data-doc-id="${escapeAttribute(docId)}"
+                        data-target-username="${escapeAttribute(entry.username)}"
+                    >
+                        Unshare
+                    </button>
+                </div>
+            </div>
+        `).join("");
+    } catch (error) {
+        list.innerHTML = "<p>Could not load access list.</p>";
+    }
+}
+
+async function submitShare(docId) {
+    const usernameInput = document.getElementById(`share-username-${docId}`);
+    const roleInput = document.getElementById(`share-role-${docId}`);
+
+    if (!usernameInput || !roleInput) return;
+
+    const targetUsername = usernameInput.value.trim();
+    const role = roleInput.value.trim().toLowerCase();
+
+    if (!targetUsername) {
+        alert("Please enter a username.");
+        return;
+    }
+
+    try {
+        const res = await fetch("/share", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({
+                doc_id: docId,
+                target_username: targetUsername,
+                role: role
+            })
+        });
+
+        const data = await parseJsonSafely(res);
+
+        if (res.ok) {
+            usernameInput.value = "";
+            roleInput.value = "viewer";
+            await loadShareList(docId);
+        } else {
+            alert(data.error || "Share failed.");
+        }
+    } catch (error) {
+        alert("Share failed.");
+    }
+}
+
+async function unshareDocument(docId, targetUsername) {
+    const confirmed = window.confirm(`Remove access for ${targetUsername}?`);
+    if (!confirmed) return;
+
+    try {
+        const res = await fetch("/unshare", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            credentials: "include",
+            body: JSON.stringify({
+                doc_id: docId,
+                target_username: targetUsername
+            })
+        });
+
+        const data = await parseJsonSafely(res);
+
+        if (res.ok) {
+            await loadShareList(docId);
+        } else {
+            alert(data.error || "Unshare failed.");
+        }
+    } catch (error) {
+        alert("Unshare failed.");
+    }
 }
