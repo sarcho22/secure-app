@@ -10,7 +10,7 @@ import secrets
 import config
 from services.storage import load_json, save_json
 from services.encrypted_storage import EncryptedStorage
-from services.user_manager import username_exists, get_user_from_username
+from services.user_manager import get_user_from_username
 from services.validation import safe_filename
 
 
@@ -55,7 +55,7 @@ class DocumentManager:
         if info is None:
             return None
 
-        return info
+        return info["role"]
 
     def can_view(self, doc_id, username):
         role = self.get_user_role_for_doc(doc_id, username)
@@ -67,7 +67,7 @@ class DocumentManager:
 
     def can_share(self, doc_id, username):
         role = self.get_user_role_for_doc(doc_id, username)
-        return role == "owner"
+        return role in {"owner"}
 
     def get_user_documents(self, username):
         documents = self.load_documents()
@@ -148,9 +148,13 @@ class DocumentManager:
     def share_document(self, owner_username, doc_id, target_username, role):
         if role not in self.VALID_SHARE_ROLES:
             return {"error": "Invalid role"}
-
-        if not username_exists(target_username):
+        
+        target_user = get_user_from_username(target_username)
+        if target_user is None:
             return {"error": "Target user does not exist"}
+
+        if role == "editor" and target_user.get("role") == "guest":
+            return {"error": "Guests cannot be given editor access"}
 
         documents = self.load_documents()
 
@@ -211,6 +215,13 @@ class DocumentManager:
     def update_share_role(self, owner_username, doc_id, target_username, new_role):
         if new_role not in self.VALID_SHARE_ROLES:
             return {"error": "Invalid role"}
+        
+        target_user = get_user_from_username(target_username)
+        if target_user is None:
+            return {"error": "Target user does not exist"}
+
+        if new_role == "editor" and target_user.get("role") == "guest":
+            return {"error": "Guests cannot be given editor access"}
 
         documents = self.load_documents()
 
