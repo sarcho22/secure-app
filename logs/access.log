@@ -65,3 +65,8 @@
 2026-04-01 19:33:47,808 - 127.0.0.1 - - [01/Apr/2026 19:33:47] "GET /login-page HTTP/1.1" 200 -
 2026-04-01 19:33:47,840 - 127.0.0.1 - - [01/Apr/2026 19:33:47] "GET /static/css/style.css HTTP/1.1" 200 -
 2026-04-01 19:33:47,844 - 127.0.0.1 - - [01/Apr/2026 19:33:47] "GET /static/js/app.js HTTP/1.1" 200 -
+2026-04-01 20:38:02,088 - [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on https://127.0.0.1:5000
+ * Running on https://10.75.228.192:5000
+2026-04-01 20:38:02,088 - [33mPress CTRL+C to quit[0m
