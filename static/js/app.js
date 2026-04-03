@@ -5,6 +5,7 @@ document.addEventListener("DOMContentLoaded", () => {
     setupResetPasswordForm();
     setupDashboard();
     setupDocumentPage();
+    setupAdminDashboard();
 });
 
 /* =========================
@@ -228,6 +229,27 @@ function setupDashboard() {
     }
 }
 
+function setupAdminDashboard() {
+    const usersTableBody = document.getElementById("usersTableBody");
+    const documentsTableBody = document.getElementById("documentsTableBody");
+    const adminLogoutBtn = document.getElementById("adminLogoutBtn");
+    const viewLogsBtn = document.getElementById("viewLogsBtn");
+
+    if (!usersTableBody || !documentsTableBody) return;
+
+    if (adminLogoutBtn) {
+        adminLogoutBtn.addEventListener("click", logout);
+    }
+
+    if (viewLogsBtn) {
+        viewLogsBtn.addEventListener("click", () => {
+            window.location.href = "/admin/logs";
+        });
+    }
+
+    loadAdminDashboard();
+}
+
 function setupDocumentPage() {
     const uploadForm = document.getElementById("uploadForm");
     const docList = document.getElementById("docList");
@@ -331,6 +353,129 @@ async function logout() {
 /* =========================
    Document functions
 ========================= */
+/* =========================
+   Admin dashboard functions
+========================= */
+
+async function loadAdminDashboard() {
+    const usersTableBody = document.getElementById("usersTableBody");
+    const documentsTableBody = document.getElementById("documentsTableBody");
+    const messageBox = document.getElementById("message");
+
+    if (!usersTableBody || !documentsTableBody) return;
+
+    usersTableBody.innerHTML = "";
+    documentsTableBody.innerHTML = "";
+    clearMessage(messageBox);
+
+    try {
+        const res = await fetch("/admin/data", {
+            method: "GET",
+            credentials: "include"
+        });
+
+        const data = await parseJsonSafely(res);
+
+        if (!res.ok) {
+            showMessage(messageBox, data.error || "Could not load admin data.", "error");
+            return;
+        }
+
+        const users = data.users || [];
+        const documents = data.documents || [];
+
+        if (users.length === 0) {
+            usersTableBody.innerHTML = `
+                <tr>
+                    <td colspan="3">No users found.</td>
+                </tr>
+            `;
+        } else {
+            users.forEach((user) => {
+                const row = document.createElement("tr");
+
+                const usernameCell = document.createElement("td");
+                usernameCell.textContent = user.username;
+
+                const roleCell = document.createElement("td");
+                roleCell.textContent = user.role;
+
+                const actionsCell = document.createElement("td");
+                const actionsDiv = document.createElement("div");
+                actionsDiv.className = "admin-actions";
+
+                if (user.role === "guest") {
+                    const btn = document.createElement("button");
+                    btn.className = "btn";
+                    btn.type = "button";
+                    btn.textContent = "Promote to User";
+                    btn.addEventListener("click", () => promoteUser(user.username));
+                    actionsDiv.appendChild(btn);
+                } else if (user.role === "user") {
+                    const btn = document.createElement("button");
+                    btn.className = "btn";
+                    btn.type = "button";
+                    btn.textContent = "Demote to Guest";
+                    btn.addEventListener("click", () => demoteUser(user.username));
+                    actionsDiv.appendChild(btn);
+                } else {
+                    actionsDiv.textContent = "Admin";
+                }
+
+                actionsCell.appendChild(actionsDiv);
+
+                row.appendChild(usernameCell);
+                row.appendChild(roleCell);
+                row.appendChild(actionsCell);
+
+                usersTableBody.appendChild(row);
+            });
+        }
+
+        if (documents.length === 0) {
+            documentsTableBody.innerHTML = `
+                <tr>
+                    <td colspan="4">No documents found.</td>
+                </tr>
+            `;
+        } else {
+            documents.forEach((doc) => {
+                const row = document.createElement("tr");
+
+                const titleCell = document.createElement("td");
+                titleCell.textContent = doc.title || doc.filename || "Untitled";
+
+                const ownerCell = document.createElement("td");
+                ownerCell.textContent = doc.owner || "unknown";
+
+                const visibilityCell = document.createElement("td");
+                visibilityCell.textContent = doc.visibility || "unknown";
+
+                const actionsCell = document.createElement("td");
+                const actionsDiv = document.createElement("div");
+                actionsDiv.className = "admin-actions";
+
+                const downloadBtn = document.createElement("button");
+                downloadBtn.className = "btn";
+                downloadBtn.type = "button";
+                downloadBtn.textContent = "Download";
+                downloadBtn.addEventListener("click", () => downloadDoc(doc.doc_id));
+
+                actionsDiv.appendChild(downloadBtn);
+                actionsCell.appendChild(actionsDiv);
+
+                row.appendChild(titleCell);
+                row.appendChild(ownerCell);
+                row.appendChild(visibilityCell);
+                row.appendChild(actionsCell);
+
+                documentsTableBody.appendChild(row);
+            });
+        }
+    } catch (error) {
+        showMessage(messageBox, "Server error. Could not load admin data.", "error");
+    }
+}
 
 function setupDocumentActions() {
     const docList = document.getElementById("docList");
@@ -745,4 +890,62 @@ async function unshareDocument(docId, targetUsername) {
     } catch (error) {
         alert("Unshare failed.");
     }
+}
+
+async function promoteUser(username) {
+    const messageBox = getMessageElement(["message"]);
+    clearMessage(messageBox);
+
+    try {
+        const response = await fetch("/admin/promote", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            credentials: "include",
+            body: JSON.stringify({ target_username: username })
+        });
+
+        const result = await parseJsonSafely(response);
+
+        if (response.ok) {
+            showMessage(messageBox, result.message || "User promoted successfully.", "success");
+            await loadAdminDashboard();
+        } else {
+            showMessage(messageBox, result.error || "Promotion failed.", "error");
+        }
+    } catch (error) {
+        showMessage(messageBox, "Server error. Promotion failed.", "error");
+    }
+}
+
+async function demoteUser(username) {
+    const messageBox = getMessageElement(["message"]);
+    clearMessage(messageBox);
+
+    try {
+        const response = await fetch("/admin/demote", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            credentials: "include",
+            body: JSON.stringify({ target_username: username })
+        });
+
+        const result = await parseJsonSafely(response);
+
+        if (response.ok) {
+            showMessage(messageBox, result.message || "User demoted successfully.", "success");
+            await loadAdminDashboard();
+        } else {
+            showMessage(messageBox, result.error || "Demotion failed.", "error");
+        }
+    } catch (error) {
+        showMessage(messageBox, "Server error. Demotion failed.", "error");
+    }
+}
+
+function downloadDoc(docId) {
+    window.location.href = `/download/${encodeURIComponent(docId)}`;
 }

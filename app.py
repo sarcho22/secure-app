@@ -732,17 +732,19 @@ def delete_document(doc_id):
 @require_auth(security_logger)
 @require_any_role(security_logger, "admin")
 def admin_dashboard():
+    return render_template("admin_dashboard.html")
+
+@app.route("/admin/data", methods=["GET"])
+@require_auth(security_logger)
+@require_any_role(security_logger, "admin")
+def admin_data():
     users_data = load_json(config.USERS_FILE)
     documents_data = load_json(config.DOCUMENTS_FILE)
 
-    users = users_data.get("users", [])
-    documents = documents_data.get("documents", [])
-
-    return render_template(
-        "admin_dashboard.html",
-        users=users,
-        documents=documents
-    )
+    return jsonify({
+        "users": users_data.get("users", []),
+        "documents": documents_data.get("documents", [])
+    }), 200
 
 @app.route("/admin/users", methods=["GET"])
 @require_auth(security_logger)
