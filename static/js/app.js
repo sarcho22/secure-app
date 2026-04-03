@@ -35,7 +35,11 @@ function setupLoginForm() {
             const data = await parseJsonSafely(res);
 
             if (res.ok) {
-                window.location.href = "/dashboard";
+                if (data.role === "admin") {
+                    window.location.href = "/admin/dashboard";
+                } else {
+                    window.location.href = "/dashboard";
+                }
             } else {
                 showMessage(messageBox, data.error || "Login failed.", "error");
             }

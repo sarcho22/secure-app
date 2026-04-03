@@ -31,7 +31,7 @@ def validate_username(username):
 def validate_password_strength(password):
     # minimum 12 chars
     # 1 uppercase, 1 lowercase, 1 num, 1 special char (!@#$%^&*)
-    if len(password) < 12:
+    if len(password) < 12 or len(password) > 128:
         return False
     if not re.fullmatch(r'[a-zA-Z0-9!@#$%^&*]+', password):
         return False
@@ -64,6 +64,8 @@ def sanitize_output(data):
 
 def safe_filename(filename):
     # remove path traversal attempts
+    if(len(filename) > 255):
+        raise ValueError("Filename too long")
     filename = os.path.basename(filename)
     filename = secure_filename(filename)
 

@@ -2,8 +2,8 @@ from flask import Flask, redirect, request, jsonify, make_response, render_templ
 import config, io, os, smtplib, logging
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from services.storage import save_json
-from services.user_manager import register_user, authenticate_user, get_all_users, promote_user, create_password_reset_token, reset_password_with_token
+from services.storage import save_json, load_json
+from services.user_manager import register_user, authenticate_user, get_all_users, promote_user, demote_user, create_password_reset_token, reset_password_with_token
 from services.validation import validate_password_strength, allowed_file, allowed_mime_type
 from services.security_logger import SecurityLogger
 from services.session_manager import SessionManager
@@ -468,7 +468,7 @@ def list_documents():
 @app.route("/download/<doc_id>", methods=["GET"])
 @require_auth(security_logger)
 def download(doc_id):
-    result = document_manager.get_file(request.user["username"], doc_id)
+    result = document_manager.get_file(request.user["username"], request.user["role"], doc_id)
 
     if "error" in result:
         if result["error"] == "Document not found":
@@ -494,7 +494,7 @@ def download(doc_id):
     security_logger.log_event(
         event_type="DATA_READ",
         user_id=request.user["username"],
-        details=f"Downloaded document: {filename}"
+        details=f"Downloaded document: {filename} (doc_id={doc_id})"
     )
 
     return send_file(
@@ -728,16 +728,21 @@ def delete_document(doc_id):
     )
     return jsonify(result), 200
 
-@app.route("/admin/dashboard")
+@app.route("/admin/dashboard", methods=["GET"])
 @require_auth(security_logger)
 @require_any_role(security_logger, "admin")
 def admin_dashboard():
-    security_logger.log_event(
-        event_type="DATA_READ",
-        user_id=request.user["username"],
-        details="Accessed admin dashboard"
+    users_data = load_json(config.USERS_FILE)
+    documents_data = load_json(config.DOCUMENTS_FILE)
+
+    users = users_data.get("users", [])
+    documents = documents_data.get("documents", [])
+
+    return render_template(
+        "admin_dashboard.html",
+        users=users,
+        documents=documents
     )
-    return render_template("admin.html")
 
 @app.route("/admin/users", methods=["GET"])
 @require_auth(security_logger)
@@ -760,6 +765,18 @@ def admin_list_users():
         })
 
     return jsonify({"users": safe_users}), 200
+
+@app.route("/admin/logs", methods=["GET"])
+@require_auth(security_logger)
+@require_any_role(security_logger, "admin")
+def admin_logs():
+    logs = []
+
+    if os.path.exists(config.SECURITY_LOG):
+        with open(config.SECURITY_LOG, "r") as f:
+            logs = f.readlines()
+
+    return render_template("admin_logs.html", logs=logs)
 
 @app.route("/admin/promote", methods=["POST"])
 @require_auth(security_logger)
@@ -795,6 +812,54 @@ def admin_promote_user():
     )
 
     return jsonify(result), 200
+
+@app.route("/admin/documents", methods=["GET"])
+@require_auth(security_logger)
+@require_any_role(security_logger, "admin")
+def admin_documents():
+    documents_data = load_json(config.DOCUMENTS_FILE)
+    documents = documents_data.get("documents", [])
+    return render_template("admin_documents.html", documents=documents)
+
+@app.route("/admin/demote", methods=["POST"])
+@require_auth(security_logger)
+@require_any_role(security_logger, "admin")
+def admin_demote_user():
+    data = request.get_json(silent=True) or request.form
+    target_username = data.get("target_username", "").strip()
+
+    if not target_username:
+        security_logger.log_event(
+            event_type="INPUT_VALIDATION_FAILURE",
+            user_id=request.user["username"],
+            details="Admin demotion failed: missing target username",
+            severity="WARNING"
+        )
+        return jsonify({"error": "Target username required"}), 400
+    result = demote_user(target_username)
+
+    if "error" in result:
+        security_logger.log_event(
+            event_type="INPUT_VALIDATION_FAILURE",
+            user_id=request.user["username"],
+            details=f"Admin demotion failed for {target_username}: {result['error']}",
+            severity="WARNING"
+        )
+        return jsonify(result), 400
+
+    docs_changed = document_manager.downgrade_user_document_access(target_username)
+
+    security_logger.log_event(
+        event_type="SECURITY_CONFIGURATION_CHANGE",
+        user_id=request.user["username"],
+        details=f"Demoted {target_username} from user to guest; document editor permissions downgraded: {docs_changed}"
+    )
+
+    return jsonify({
+        "success": True,
+        "message": result["message"],
+        "document_permissions_downgraded": docs_changed
+    }), 200
 
 
 # Force HTTPS:

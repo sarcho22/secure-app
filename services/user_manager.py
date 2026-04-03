@@ -87,6 +87,22 @@ def promote_user(target_username):
 
     return {"error": "User not found"}
 
+def demote_user(target_username):
+    data = load_json(config.USERS_FILE)
+
+    for user in data["users"]:
+        if user["username"] == target_username:
+            if user["role"] == "admin":
+                return {"error": "Cannot change admin role"}
+            if user["role"] == "guest":
+                return {"error": "User is already a guest"}
+
+            user["role"] = "guest"
+            save_json(config.USERS_FILE, data)
+            return {"success": True, "message": f"{target_username} demoted to guest"}
+
+    return {"error": "User not found"}
+
 def get_user_from_username(username):
     user_data = load_json(config.USERS_FILE)
     for user in user_data.get("users", []):

@@ -311,20 +311,34 @@ class DocumentManager:
 
         return {"error": "Document not found"}
 
-    def get_file(self, username, doc_id):
+    def get_file(self, username, user_role, doc_id):
         document = self.get_document_by_id(doc_id)
 
         if document is None:
             return {"error": "Document not found"}
 
-        if not self.can_view(doc_id, username):
+        if user_role != "admin" and not self.can_view(doc_id, username):
             return {"error": "Forbidden"}
 
         decrypted = self.storage.load_encrypted(document["encrypted_path"])
-
         data = decrypted["data"].encode("latin1")
 
         return {
             "filename": document["filename"],
             "data": data
         }
+    
+    def downgrade_user_document_access(self, username):
+        documents_data = load_json(self.documents_file)
+        changed = False
+
+        for doc in documents_data.get("documents", []):
+            shared_with = doc.get("shared_with", {})
+            if shared_with.get(username) == "editor":
+                shared_with[username] = "viewer"
+                changed = True
+
+        if changed:
+            save_json(self.documents_file, documents_data)
+
+        return changed
