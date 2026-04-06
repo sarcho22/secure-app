@@ -18,7 +18,7 @@ app = Flask(__name__)
 app.config["SECRET_KEY"] = config.SECRET_KEY
 app.config["MAX_CONTENT_LENGTH"] = 5 * 1024 * 1024  # 5 MB
 
-session_manager = SessionManager()
+session_manager = SessionManager(timeout=1800, bind_ip=False, bind_user_agent=True)
 document_manager = DocumentManager()
 security_logger = SecurityLogger()
 

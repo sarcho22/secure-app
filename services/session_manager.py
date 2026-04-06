@@ -31,6 +31,7 @@ class SessionManager:
         return request.remote_addr or "unknown"
 
     def create_session(self, username):
+        self.remove_all_expired_sessions()
         # generate session ID
         token = secrets.token_urlsafe(32)
 
@@ -52,10 +53,10 @@ class SessionManager:
     def validate_session(self, token):
         sessions = self.load_sessions()
 
-        if token not in sessions:
+        session = sessions.get(token)
+        if not session:
             return None
         
-        session = sessions[token]
         if time.time() - session['last_activity'] > self.timeout:
             self.destroy_session(token)
             return None
@@ -84,16 +85,26 @@ class SessionManager:
             del sessions[token]
             self.save_sessions(sessions)
 
-    def destroy_user_sessions(self, username):
-        data = load_json(config.SESSIONS_FILE)
-        sessions = data.get("sessions", {})
+    def remove_all_expired_sessions(self):
+        sessions = self.load_sessions()
+        current_time = time.time()
 
-        tokens_to_delete = []
+        active_sessions = {}
+
         for token, session in sessions.items():
-            if session.get("username") == username:
-                tokens_to_delete.append(token)
+            last_activity = session.get("last_activity", 0)
+            if current_time - last_activity <= self.timeout:
+                active_sessions[token] = session
 
-        for token in tokens_to_delete:
-            del sessions[token]
+        self.save_sessions(active_sessions)
 
-        save_json(config.SESSIONS_FILE, {"sessions": sessions})
+    def destroy_user_sessions(self, username):
+        sessions = self.load_sessions()
+
+        sessions = {
+            token: session
+            for token, session in sessions.items()
+            if session.get("username") != username
+        }
+
+        self.save_sessions(sessions)
