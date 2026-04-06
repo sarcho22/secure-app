@@ -23,6 +23,14 @@
             "last_activity": 1775250119.524863,
             "ip_address": "127.0.0.1",
             "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36 OPR/128.0.0.0 (Edition std-2)"
+        },
+        "gPXgXli0cSJMVA7iH6sWj0kWnRdJ95-xOnT-TnVz1ik": {
+            "token": "gPXgXli0cSJMVA7iH6sWj0kWnRdJ95-xOnT-TnVz1ik",
+            "username": "admin",
+            "created_at": 1775489036.343265,
+            "last_activity": 1775489036.385182,
+            "ip_address": "127.0.0.1",
+            "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36 OPR/128.0.0.0 (Edition std-2)"
         }
     }
 }
