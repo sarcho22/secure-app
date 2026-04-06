@@ -775,9 +775,17 @@ def admin_logs():
     logs = []
 
     if os.path.exists(config.SECURITY_LOG):
-        with open(config.SECURITY_LOG, "r") as f:
-            logs = f.readlines()
+        with open(config.SECURITY_LOG, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    logs.append(json.loads(line))
+                except json.JSONDecodeError:
+                    continue  # skip bad lines entirely
 
+    logs.reverse()  # newest first
     return render_template("admin_logs.html", logs=logs)
 
 @app.route("/admin/promote", methods=["POST"])

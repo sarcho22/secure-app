@@ -12,6 +12,72 @@ body {
     );
 }
 
+.top-bar-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.logs-container {
+    max-height: 600px;
+    overflow-y: auto;
+    border: 1px solid #d9d9d9;
+    border-radius: 8px;
+    background: #fff;
+}
+
+.logs-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.logs-table th,
+.logs-table td {
+    padding: 12px 10px;
+    text-align: left;
+    vertical-align: top;
+    border-bottom: 1px solid #e5e5e5;
+}
+
+.logs-table th {
+    position: sticky;
+    top: 0;
+    background: #f7f7f7;
+    z-index: 1;
+}
+
+.log-details {
+    max-width: 420px;
+    word-break: break-word;
+    white-space: normal;
+}
+
+.log-badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 999px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    border: 1px solid #ccc;
+}
+
+.log-info {
+    background: #eef4ff;
+}
+
+.log-warning {
+    background: #fff8e6;
+}
+
+.log-error,
+.log-critical {
+    background: #ffeaea;
+}
+
+.empty-state {
+    padding: 16px 0;
+}
+
 .admin-container {
     max-width: 1100px;
     margin: 40px auto;

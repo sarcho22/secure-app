@@ -949,3 +949,38 @@ async function demoteUser(username) {
 function downloadDoc(docId) {
     window.location.href = `/download/${encodeURIComponent(docId)}`;
 }
+
+function showMessage(text, isError = false) {
+    const messageEl = document.getElementById("message");
+    if (!messageEl) return;
+
+    messageEl.textContent = text;
+    messageEl.classList.remove("error", "success");
+    messageEl.classList.add(isError ? "error" : "success");
+}
+
+async function handleLogout() {
+    try {
+        const response = await fetch("/logout", {
+            method: "POST",
+            credentials: "include"
+        });
+
+        if (response.ok) {
+            window.location.href = "/login";
+            return;
+        }
+
+        showMessage("Logout failed.", true);
+    } catch (error) {
+        console.error("Logout error:", error);
+        showMessage("Logout failed.", true);
+    }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+    const adminLogoutBtn = document.getElementById("adminLogoutBtn");
+    if (adminLogoutBtn) {
+        adminLogoutBtn.addEventListener("click", handleLogout);
+    }
+});
