@@ -1,5 +1,5 @@
 from flask import Flask, redirect, request, jsonify, make_response, render_template, send_file
-import config, io, os, smtplib, logging
+import config, io, os, smtplib, logging, json
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from services.storage import save_json, load_json
