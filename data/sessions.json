@@ -1,28 +1,3 @@
 {
-    "sessions": {
-        "5beFpTD48Tx3r5NbuQ5AuOuIafLy9K2ATbQX1m-fxNw": {
-            "token": "5beFpTD48Tx3r5NbuQ5AuOuIafLy9K2ATbQX1m-fxNw",
-            "username": "admin",
-            "created_at": 1775510174.8411222,
-            "last_activity": 1775510177.384193,
-            "ip_address": "127.0.0.1",
-            "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36 OPR/128.0.0.0 (Edition std-2)"
-        },
-        "ZPuZyykYqCtfRLi8mAV875c03jvI1e75qqkfKds-Q9U": {
-            "token": "ZPuZyykYqCtfRLi8mAV875c03jvI1e75qqkfKds-Q9U",
-            "username": "admin",
-            "created_at": 1775510267.532063,
-            "last_activity": 1775510287.638171,
-            "ip_address": "127.0.0.1",
-            "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36 OPR/128.0.0.0 (Edition std-2)"
-        },
-        "Nf3HnHurB97ucuBMP4HStD7_uA15LypgJy9kPWekO0U": {
-            "token": "Nf3HnHurB97ucuBMP4HStD7_uA15LypgJy9kPWekO0U",
-            "username": "admin",
-            "created_at": 1775510412.640353,
-            "last_activity": 1775510414.014914,
-            "ip_address": "127.0.0.1",
-            "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36 OPR/128.0.0.0 (Edition std-2)"
-        }
-    }
+    "sessions": {}
 }
