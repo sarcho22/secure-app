@@ -135,25 +135,47 @@ def create_password_reset_token(email):
     user = get_user_from_email(email)
     if user is None:
         return None
+    
+    now = time.time()
+    resets = load_password_resets()
+
+    latest_reset = None
+    for reset in resets:
+        if reset["username"] == user["username"]:
+            if latest_reset is None or reset["created_at"] > latest_reset["created_at"]:
+                latest_reset = reset
+
+    if latest_reset is not None:
+        if now - latest_reset["created_at"] < config.RESET_REQUEST_COOLDOWN_SECONDS:
+            return {
+                "username": user["username"],
+                "email": user["email"],
+                "cooldown": True
+            }
+        
+    for reset in resets:
+        if reset["username"] == user["username"] and not reset.get("used", False):
+            reset["used"] = True
+            reset["used_at"] = now
 
     raw_token = secrets.token_urlsafe(32)
     token_hash = hash_reset_token(raw_token)
 
-    resets = load_password_resets()
     resets.append({
         "username": user["username"],
         "email": user["email"],
         "token_hash": token_hash,
-        "expires_at": time.time() + config.RESET_TOKEN_EXPIRY_SECONDS,
+        "expires_at": now + config.RESET_TOKEN_EXPIRY_SECONDS,
         "used": False,
-        "created_at": time.time()
+        "created_at": now
     })
     save_password_resets(resets)
 
     return {
         "username": user["username"],
         "email": user["email"],
-        "token": raw_token
+        "token": raw_token,
+        "cooldown": False
     }
 
 
@@ -168,8 +190,8 @@ def update_user_password(username, new_password):
 
             if "failed_attempts" in user:
                 user["failed_attempts"] = 0
-            if "lockout_until" in user:
-                user["lockout_until"] = 0
+            if "locked_until" in user:
+                user["locked_until"] = 0
 
             save_json(config.USERS_FILE, data)
             return {"success": True}

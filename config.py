@@ -16,6 +16,7 @@ PASSWORD_RESETS_FILE = os.path.join(DATA_DIR, "password_resets.json")
 
 # reset password...
 RESET_TOKEN_EXPIRY_SECONDS = 1800  # 30 minutes
+RESET_REQUEST_COOLDOWN_SECONDS = 600 # 10 minutes
 
 BASE_URL = "https://127.0.0.1:5000"
 

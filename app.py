@@ -181,7 +181,14 @@ def forgot_password():
 
     reset_info = create_password_reset_token(email)
 
-    if reset_info is not None:
+    if reset_info is not None and reset_info.get("cooldown", False):
+        security_logger.log_event(
+            event_type="PASSWORD_RESET_REQUEST",
+            user_id=reset_info["username"],
+            details="Password reset request suppressed due to cooldown"
+        )
+
+    if reset_info is not None and not reset_info.get("cooldown", False):
         reset_link = f"{config.BASE_URL}/reset-password-page?token={reset_info['token']}"
         send_password_reset_email(reset_info["email"], reset_link)
 
