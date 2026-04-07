@@ -2,17 +2,8 @@ from cryptography.fernet import Fernet
 import json, config
 
 class EncryptedStorage:
-    def __init__(self, key_file=config.ENCRYPTION_KEY_FILE):
-        # Load or generate encryption key
-        try:
-            with open(key_file, 'rb') as f:
-                self.key = f.read()
-        except FileNotFoundError:
-            self.key = Fernet.generate_key()
-            with open(key_file, 'wb') as f:
-                f.write(self.key)
-
-        self.cipher = Fernet(self.key)
+    def __init__(self):
+        self.cipher = Fernet(config.FERNET_KEY)
 
     def save_encrypted(self, filename, data):
         """Save encrypted JSON data"""

@@ -78,6 +78,11 @@ This link will expire in 30 minutes.
 
 If you did not request this, you can ignore this email.
 """.strip()
+    
+    if not config.SMTP_USERNAME or not config.SMTP_PASSWORD:
+        print("[EMAIL DISABLED] SMTP not configured.")
+        print(f"[RESET LINK] {reset_link}")
+        return
 
     msg = MIMEMultipart()
     msg["From"] = config.SMTP_FROM
