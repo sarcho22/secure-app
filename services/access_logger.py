@@ -4,10 +4,11 @@ import json
 from datetime import datetime
 import os
 
-class SecurityLogger:
-    def __init__(self, log_file='logs/security.log'):
+
+class AccessLogger:
+    def __init__(self, log_file='logs/access.log'):
         self.log_file = log_file
-        self.logger = logging.getLogger('security')
+        self.logger = logging.getLogger('access')
         self.logger.setLevel(logging.INFO)
 
         if not self.logger.handlers:
@@ -17,29 +18,26 @@ class SecurityLogger:
             handler.setFormatter(formatter)
             self.logger.addHandler(handler)
 
-    def log_event(self, event_type, user_id, details, severity='INFO'):
+    def log_event(self, event_type, user_id, resource, action, details=None):
         forwarded_for = request.headers.get("X-Forwarded-For", "")
-        ip_address = forwarded_for.split(",")[0].strip() if forwarded_for else (request.remote_addr or "unknown")
+        ip_address = (
+            forwarded_for.split(",")[0].strip()
+            if forwarded_for
+            else (request.remote_addr or "unknown")
+        )
+
         log_entry = {
-            'timestamp': datetime.utcnow().isoformat() + 'Z',
+            'timestamp': datetime.utcnow().isoformat(),
             'event_type': event_type,
             'user_id': user_id,
             'ip_address': ip_address,
             'user_agent': request.headers.get('User-Agent'),
-            'details': details,
-            'severity': severity
+            'resource': resource,
+            'action': action,
+            'details': details or {}
         }
 
-        message = json.dumps(log_entry)
-
-        if severity == 'CRITICAL':
-            self.logger.critical(message)
-        elif severity == 'ERROR':
-            self.logger.error(message)
-        elif severity == 'WARNING':
-            self.logger.warning(message)
-        else:
-            self.logger.info(message)
+        self.logger.info(json.dumps(log_entry))
 
     def read_logs(self, limit=200):
         if not os.path.exists(self.log_file):
@@ -62,8 +60,9 @@ class SecurityLogger:
                     'user_id': None,
                     'ip_address': None,
                     'user_agent': None,
-                    'details': line,
-                    'severity': 'INFO'
+                    'resource': None,
+                    'action': None,
+                    'details': line
                 })
 
             if len(entries) >= limit:

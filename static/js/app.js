@@ -234,6 +234,7 @@ function setupAdminDashboard() {
     const documentsTableBody = document.getElementById("documentsTableBody");
     const adminLogoutBtn = document.getElementById("adminLogoutBtn");
     const viewLogsBtn = document.getElementById("viewLogsBtn");
+    const viewAccessLogsBtn = document.getElementById("viewAccessLogsBtn");
 
     if (adminLogoutBtn) {
         adminLogoutBtn.addEventListener("click", logout);
@@ -242,6 +243,12 @@ function setupAdminDashboard() {
     if (viewLogsBtn) {
         viewLogsBtn.addEventListener("click", () => {
             window.location.href = "/admin/logs";
+        });
+    }
+
+    if (viewAccessLogsBtn) {
+        viewAccessLogsBtn.addEventListener("click", () => {
+            window.location.href = "/admin/access-logs";
         });
     }
 

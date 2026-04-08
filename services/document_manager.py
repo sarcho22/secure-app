@@ -329,16 +329,19 @@ class DocumentManager:
         }
     
     def downgrade_user_document_access(self, username):
-        documents_data = load_json(self.documents_file)
+        documents = self.load_documents()
         changed = False
 
-        for doc in documents_data.get("documents", []):
+        for doc in documents:
             shared_with = doc.get("shared_with", {})
-            if shared_with.get(username) == "editor":
-                shared_with[username] = "viewer"
+            info = shared_with.get(username)
+
+            if info and info.get("role") == "editor":
+                shared_with[username]["role"] = "viewer"
+                doc["updated_at"] = time.time()
                 changed = True
 
         if changed:
-            save_json(self.documents_file, documents_data)
+            self.save_documents(documents)
 
         return changed

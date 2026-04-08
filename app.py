@@ -1,11 +1,12 @@
 from flask import Flask, redirect, request, jsonify, make_response, render_template, send_file
-import config, io, os, smtplib, logging, json
+import config, io, os, smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from services.storage import save_json, load_json
 from services.user_manager import register_user, authenticate_user, get_all_users, promote_user, demote_user, create_password_reset_token, reset_password_with_token
 from services.validation import validate_password_strength, allowed_file, allowed_mime_type
 from services.security_logger import SecurityLogger
+from services.access_logger import AccessLogger
 from services.session_manager import SessionManager
 from services.document_manager import DocumentManager
 from services.authz import require_auth, require_any_role
@@ -21,6 +22,7 @@ app.config["MAX_CONTENT_LENGTH"] = 5 * 1024 * 1024  # 5 MB
 session_manager = SessionManager(timeout=1800, bind_ip=False, bind_user_agent=True)
 document_manager = DocumentManager()
 security_logger = SecurityLogger()
+access_logger = AccessLogger()
 
 LOGIN_RATE_LIMIT_MAX_ATTEMPTS = 10
 LOGIN_RATE_LIMIT_WINDOW_SECONDS = 60
@@ -43,27 +45,7 @@ def ensure_app_files():
     if not os.path.exists(config.PASSWORD_RESETS_FILE):
         save_json(config.PASSWORD_RESETS_FILE, {"resets": []})
 
-def setup_access_log():
-    os.makedirs("logs", exist_ok=True)
-
-    access_logger = logging.getLogger("werkzeug")
-    access_logger.setLevel(logging.INFO)
-
-    # Avoid adding duplicate handlers if app reloads
-    if not any(
-        isinstance(handler, logging.FileHandler) and
-        getattr(handler, "baseFilename", "").endswith("access.log")
-        for handler in access_logger.handlers
-    ):
-        file_handler = logging.FileHandler("logs/access.log")
-        file_handler.setLevel(logging.INFO)
-        file_handler.setFormatter(logging.Formatter(
-            "%(asctime)s - %(message)s"
-        ))
-        access_logger.addHandler(file_handler)
-
 ensure_app_files()
-setup_access_log()
 
 def send_password_reset_email(to_email, reset_link):
     subject = "Password Reset Request"
@@ -455,12 +437,13 @@ def upload():
         )
         return jsonify(result), 400
 
-    security_logger.log_event(
+    access_logger.log_event(
         event_type="DATA_CREATE",
         user_id=request.user["username"],
-        details=f"Uploaded document: {result['filename']}"
+        resource="document",
+        action="upload",
+        details={"filename": result["filename"], "doc_id": result["doc_id"]}
     )
-
     return jsonify(result), 201
 
 
@@ -469,10 +452,11 @@ def upload():
 def list_documents():
     documents = document_manager.get_user_documents(request.user["username"])
 
-    security_logger.log_event(
+    access_logger.log_event(
         event_type="DATA_READ",
         user_id=request.user["username"],
-        details="User viewed document list"
+        resource="document_list",
+        action="view"
     )
 
     return jsonify({"documents": documents})
@@ -503,10 +487,12 @@ def download(doc_id):
     file_bytes = result["data"]
     filename = result["filename"]
 
-    security_logger.log_event(
+    access_logger.log_event(
         event_type="DATA_READ",
         user_id=request.user["username"],
-        details=f"Downloaded document: {filename} (doc_id={doc_id})"
+        resource="document",
+        action="download",
+        details={"doc_id": doc_id, "filename": filename}
     )
 
     return send_file(
@@ -579,10 +565,12 @@ def replace_document():
         # dont want to let them know doc exists
         return jsonify({"error": "Document not found"}), 404
     
-    security_logger.log_event(
+    access_logger.log_event(
         event_type="DATA_UPDATE",
         user_id=request.user["username"],
-        details=f"Replaced document {doc_id} with file {file.filename}"
+        resource="document",
+        action="replace",
+        details={"doc_id": doc_id, "filename": file.filename}
     )
     return jsonify(result), 200
 
@@ -624,10 +612,12 @@ def share_document():
         )
         return jsonify(result), 400
 
-    security_logger.log_event(
-        event_type="DATA_UPDATE",
+    access_logger.log_event(
+        event_type="ACL_UPDATE",
         user_id=request.user["username"],
-        details=f"Shared document {doc_id} with {target_username} as {role}"
+        resource="document_share",
+        action="share",
+        details={"doc_id": doc_id, "target_username": target_username, "role": role}
     )
     return jsonify(result), 200
 
@@ -669,10 +659,12 @@ def unshare_document():
         )
         return jsonify(result), 400
     
-    security_logger.log_event(
-        event_type="DATA_UPDATE",
+    access_logger.log_event(
+        event_type="ACL_UPDATE",
         user_id=request.user["username"],
-        details=f"Unshared document {doc_id} from {target_username}"
+        resource="document_share",
+        action="unshare",
+        details={"doc_id": doc_id, "target_username": target_username}
     )
     return jsonify(result), 200
 
@@ -702,10 +694,12 @@ def list_shares(doc_id):
         # dont let them know doc exists
         return jsonify({"error": "Document not found"}), 404
 
-    security_logger.log_event(
-        event_type="DATA_READ",
+    access_logger.log_event(
+        event_type="ACL_READ",
         user_id=request.user["username"],
-        details=f"Viewed share list for document {doc_id}"
+        resource="document_share_list",
+        action="view",
+        details={"doc_id": doc_id}
     )
     return jsonify(result), 200
 
@@ -733,10 +727,12 @@ def delete_document(doc_id):
         # dont let them know it exists
         return jsonify({"error": "Document not found"}), 404
 
-    security_logger.log_event(
+    access_logger.log_event(
         event_type="DATA_DELETE",
         user_id=request.user["username"],
-        details=f"Deleted document {doc_id}"
+        resource="document",
+        action="delete",
+        details={"doc_id": doc_id}
     )
     return jsonify(result), 200
 
@@ -744,6 +740,12 @@ def delete_document(doc_id):
 @require_auth(security_logger)
 @require_any_role(security_logger, "admin")
 def admin_dashboard():
+    access_logger.log_event(
+        event_type="ADMIN_READ",
+        user_id=request.user["username"],
+        resource="admin_dashboard",
+        action="view"
+    )
     return render_template("admin_dashboard.html")
 
 @app.route("/admin/data", methods=["GET"])
@@ -764,10 +766,11 @@ def admin_data():
 def admin_list_users():
     users = get_all_users()
 
-    security_logger.log_event(
-        event_type="DATA_READ",
+    access_logger.log_event(
+        event_type="ADMIN_READ",
         user_id=request.user["username"],
-        details="Admin viewed all users"
+        resource="user_list",
+        action="view"
     )
 
     safe_users = []
@@ -784,21 +787,26 @@ def admin_list_users():
 @require_auth(security_logger)
 @require_any_role(security_logger, "admin")
 def admin_logs():
-    logs = []
+    access_logger.log_event(
+        event_type="ADMIN_READ",
+        user_id=request.user["username"],
+        resource="security_log",
+        action="view"
+    )
+    return render_template("admin_logs.html", logs=security_logger.read_logs())
 
-    if os.path.exists(config.SECURITY_LOG):
-        with open(config.SECURITY_LOG, "r", encoding="utf-8") as f:
-            for line in f:
-                line = line.strip()
-                if not line:
-                    continue
-                try:
-                    logs.append(json.loads(line))
-                except json.JSONDecodeError:
-                    continue  # skip bad lines entirely
+@app.route("/admin/access-logs", methods=["GET"])
+@require_auth(security_logger)
+@require_any_role(security_logger, "admin")
+def admin_access_logs():
+    access_logger.log_event(
+        event_type="ADMIN_READ",
+        user_id=request.user["username"],
+        resource="access_log",
+        action="view"
+    )
+    return render_template("admin_access_logs.html", logs=access_logger.read_logs())
 
-    logs.reverse()  # newest first
-    return render_template("admin_logs.html", logs=logs)
 
 @app.route("/admin/promote", methods=["POST"])
 @require_auth(security_logger)
@@ -841,6 +849,14 @@ def admin_promote_user():
 def admin_documents():
     documents_data = load_json(config.DOCUMENTS_FILE)
     documents = documents_data.get("documents", [])
+
+    access_logger.log_event(
+        event_type="ADMIN_READ",
+        user_id=request.user["username"],
+        resource="document_list",
+        action="view_all"
+    )
+
     return render_template("admin_documents.html", documents=documents)
 
 @app.route("/admin/demote", methods=["POST"])
