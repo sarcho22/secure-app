@@ -7,8 +7,17 @@
             "encrypted_path": "/Users/sarahchoi/Downloads/secure-app/secure-app/data/docs/VEp_2zqUKR0kTJKKygWy1Q.enc",
             "version": 3,
             "created_at": 1774917310.823586,
-            "updated_at": 1775520812.8276238,
-            "shared_with": {}
+            "updated_at": 1775677789.856357,
+            "shared_with": {
+                "admin": {
+                    "role": "editor",
+                    "shared_at": 1775677789.8563561
+                },
+                "sarchotest": {
+                    "role": "viewer",
+                    "shared_at": 1775677784.655841
+                }
+            }
         }
     ]
 }

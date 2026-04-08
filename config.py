@@ -42,7 +42,7 @@ SECRET_KEY = os.environ.get("SECRET_KEY", "dev-secret-key")
 def get_fernet_key():
     key_path = Path(ENCRYPTION_KEY_FILE)
     if key_path.exists():
-        return key_path.read_bytes.strip()
+        return key_path.read_bytes().strip()
     
     # if doesnt exist, need to generate new one
     key = Fernet.generate_key()
