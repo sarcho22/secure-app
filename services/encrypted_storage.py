@@ -23,10 +23,10 @@ class EncryptedStorage:
     
 
     def encrypt_string(self, value):
-        return self.fernet.encrypt(value.encode("utf-8")).decode("utf-8")
+        return self.cipher.encrypt(value.encode("utf-8")).decode("utf-8")
     
     def decrypt_string(self, value):
-        return self.fernet.decrypt(value.encode("utf-8")).decode("utf-8")
+        return self.cipher.decrypt(value.encode("utf-8")).decode("utf-8")
 
 
 # Usage:
