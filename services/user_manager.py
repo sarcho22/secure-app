@@ -3,17 +3,16 @@ Handles user registration and password verification.
 Contains authentication-related business logic.
 """
 
-import bcrypt
-import time
-import secrets
-import hashlib
+import bcrypt, time, secrets, hashlib
 
 from services.validation import validate_username, validate_password_strength, validate_email
 from services.storage import save_json, load_json
+from services.encrypted_storage import encrypted_storage
 import config
 
 MAX_FAILURES = 5
 LOCKOUT_DURATION = 900 # 15 minutes
+
 
 def register_user(username, email, password):
     # Validate inputs
@@ -23,13 +22,15 @@ def register_user(username, email, password):
     if not validate_password_strength(password):
         return {"error": "Password does not meet requirements"}
     
-    if not validate_email(email):
+    normalized_email = normalize_email(email)
+
+    if not validate_email(normalized_email):
         return {"error": "Invalid email"}
     
     if username_exists(username):
         return {"error": "Username already exists"}
     
-    if email_exists(email):
+    if email_exists(normalized_email):
         return {"error": "Email already associated with an account"}
 
     
@@ -39,7 +40,8 @@ def register_user(username, email, password):
     # Store user (file-based)
     user = {
         "username": username,
-        "email": email,
+        "email_hash": hash_email(normalized_email),
+        "email_encrypted": encrypted_storage.encrypt_string(normalized_email),
         "password_hash": hashed.decode('utf-8'),
         "created_at": time.time(),
         "role": "guest",
@@ -111,12 +113,18 @@ def get_user_from_username(username):
     return None
 
 def get_user_from_email(email):
+    target_hash = hash_email(email)
     data = load_json(config.USERS_FILE)
     for user in data["users"]:
-        if user["email"].lower() == email.lower():
+        if user["email_hash"] == target_hash:
             return user
     return None
 
+def get_user_email(user):
+    encrypted_email = user.get("email_encrypted")
+    if not encrypted_email:
+        return None
+    return encrypted_storage.decrypt_string(encrypted_email)
 
 def load_password_resets():
     data = load_json(config.PASSWORD_RESETS_FILE)
@@ -149,7 +157,7 @@ def create_password_reset_token(email):
         if now - latest_reset["created_at"] < config.RESET_REQUEST_COOLDOWN_SECONDS:
             return {
                 "username": user["username"],
-                "email": user["email"],
+                "email": get_user_email(user),
                 "cooldown": True
             }
         
@@ -163,7 +171,7 @@ def create_password_reset_token(email):
 
     resets.append({
         "username": user["username"],
-        "email": user["email"],
+        "email_hash": user["email_hash"],
         "token_hash": token_hash,
         "expires_at": now + config.RESET_TOKEN_EXPIRY_SECONDS,
         "used": False,
@@ -173,7 +181,7 @@ def create_password_reset_token(email):
 
     return {
         "username": user["username"],
-        "email": user["email"],
+        "email": get_user_email(user),
         "token": raw_token,
         "cooldown": False
     }
@@ -230,16 +238,11 @@ def username_exists(username):
     return get_user_from_username(username) is not None
 
 def email_exists(email):
-    user_data = load_json(config.USERS_FILE)
-    for user in user_data.get("users", []):
-        if user['email'] == email:
-            return True
-    return False
+    return get_user_from_email(email) is not None
 
 def get_all_users():
     user_data = load_json(config.USERS_FILE)
     return user_data.get("users", [])
-
 
 def save_all_users(users):
     save_json(config.USERS_FILE, {"users": users})
@@ -285,6 +288,9 @@ def record_failed_login(user):
 
     update_user(user)
 
-def get_all_users():
-    data = load_json(config.USERS_FILE)
-    return data["users"]
+def normalize_email(email):
+    return email.strip().lower()
+
+def hash_email(email):
+    normalized = normalize_email(email)
+    return hashlib.sha256(normalized.encode('utf-8')).hexdigest()

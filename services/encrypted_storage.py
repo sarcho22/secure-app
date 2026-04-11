@@ -20,6 +20,13 @@ class EncryptedStorage:
 
         decrypted = self.cipher.decrypt(encrypted)
         return json.loads(decrypted.decode())
+    
+
+    def encrypt_string(self, value):
+        return self.fernet.encrypt(value.encode("utf-8")).decode("utf-8")
+    
+    def decrypt_string(self, value):
+        return self.fernet.decrypt(value.encode("utf-8")).decode("utf-8")
 
 
 # Usage:
@@ -32,3 +39,5 @@ class EncryptedStorage:
 
 # Load sensitive data
 # data = storage.load_encrypted('data/passwords.enc')
+
+encrypted_storage = EncryptedStorage()

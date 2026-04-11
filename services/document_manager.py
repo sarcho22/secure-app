@@ -3,13 +3,10 @@ Handles document metadata, sharing, and basic upload/download operations.
 Uses EncryptedStorage for secure content storage.
 """
 
-import os
-import time
-import secrets
+import os, time, secrets, config
 
-import config
 from services.storage import load_json, save_json
-from services.encrypted_storage import EncryptedStorage
+from services.encrypted_storage import encrypted_storage
 from services.user_manager import get_user_from_username
 from services.validation import safe_filename
 
@@ -20,7 +17,7 @@ class DocumentManager:
     def __init__(self):
         self.documents_file = config.DOCUMENTS_FILE
         self.docs_dir = os.path.join(config.DATA_DIR, "docs")
-        self.storage = EncryptedStorage()
+        self.storage = encrypted_storage
 
         os.makedirs(self.docs_dir, exist_ok=True)
 

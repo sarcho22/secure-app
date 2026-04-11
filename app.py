@@ -3,7 +3,7 @@ import config, io, os, smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from services.storage import save_json, load_json
-from services.user_manager import register_user, authenticate_user, get_all_users, promote_user, demote_user, create_password_reset_token, reset_password_with_token
+from services.user_manager import get_user_email, register_user, authenticate_user, get_all_users, promote_user, demote_user, create_password_reset_token, reset_password_with_token
 from services.validation import validate_password_strength, allowed_file, allowed_mime_type
 from services.security_logger import SecurityLogger
 from services.access_logger import AccessLogger
@@ -19,6 +19,10 @@ app = Flask(__name__)
 app.config["SECRET_KEY"] = config.SECRET_KEY
 app.config["MAX_CONTENT_LENGTH"] = 5 * 1024 * 1024  # 5 MB
 
+
+# bind ip is false to prevent session invalidation if user IP changes (eg mobile users switching networks), but IP is still logged on each request
+# if suspicious activity is detected, admins can investigate using the logs (which include IP addresses)
+# User agent binding is enabled to provide some additional protection against session theft (an attacker would need to both steal the session token and spoof the user agent).
 session_manager = SessionManager(timeout=1800, bind_ip=False, bind_user_agent=True)
 document_manager = DocumentManager()
 security_logger = SecurityLogger()
@@ -27,7 +31,6 @@ access_logger = AccessLogger()
 LOGIN_RATE_LIMIT_MAX_ATTEMPTS = 10
 LOGIN_RATE_LIMIT_WINDOW_SECONDS = 60
 login_attempts_by_ip = defaultdict(deque)
-
 
 def ensure_app_files():
     os.makedirs(config.DATA_DIR, exist_ok=True)
@@ -380,7 +383,6 @@ def logout():
 def me():
     return jsonify({
         "username": request.user["username"],
-        "email": request.user["email"],
         "role": request.user["role"]
     })
 
@@ -755,9 +757,32 @@ def admin_data():
     users_data = load_json(config.USERS_FILE)
     documents_data = load_json(config.DOCUMENTS_FILE)
 
+    safe_user = []
+    for user in users_data.get("users", []):
+        safe_user.append({
+            "username": user["username"],
+            "role": user["role"]
+        })
+
+    safe_documents = []
+    for doc in documents_data.get("documents", []):
+        share_count = len(doc.get("shared_with", {}))
+
+        if share_count == 0:
+            visibility = "Private"
+        else:
+            visibility = f"Shared with {share_count} user(s)"
+
+        safe_documents.append({
+            "doc_id": doc["doc_id"],
+            "filename": doc["filename"],
+            "owner": doc["owner"],
+            "visibility": visibility
+        })
+
     return jsonify({
-        "users": users_data.get("users", []),
-        "documents": documents_data.get("documents", [])
+        "users": safe_user,
+        "documents": safe_documents
     }), 200
 
 @app.route("/admin/users", methods=["GET"])
@@ -777,7 +802,6 @@ def admin_list_users():
     for user in users:
         safe_users.append({
             "username": user["username"],
-            "email": user["email"],
             "role": user["role"]
         })
 

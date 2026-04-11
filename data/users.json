@@ -1,31 +1,5 @@
 {
     "users": [
-        {
-            "username": "admin",
-            "email": "secureappssc@gmail.com",
-            "password_hash": "$2b$12$M2Ta4tR27gk7rkTZlsWeKuWsiOwE5TfJJ5T9Rud8jPHqIDSymo7Q6",
-            "created_at": 1775075915.035724,
-            "role": "admin",
-            "failed_attempts": 0,
-            "locked_until": null
-        },
-        {
-            "username": "testuser",
-            "email": "test@example.com",
-            "password_hash": "$2b$12$zLOEQxFW727VNn.7SRZJh.4wdsbTuQXP1Gb/xDG1vbPYI4EqJQpea",
-            "created_at": 1773939509.776617,
-            "role": "user",
-            "failed_attempts": 0,
-            "locked_until": null
-        },
-        {
-            "username": "sarchotest",
-            "email": "ssc185@scarletmail.rutgers.edu",
-            "password_hash": "$2b$12$xY58nvBtT.XFncU1fmRDBuyvz.7R0dMdJeOJTMAz9a1aNOzC7mh/y",
-            "created_at": 1774914132.37433,
-            "role": "guest",
-            "failed_attempts": 0,
-            "locked_until": null
-        }
+        
     ]
 }

@@ -456,14 +456,7 @@ async function loadAdminDashboard() {
                 ownerCell.textContent = doc.owner || "unknown";
 
                 const visibilityCell = document.createElement("td");
-                const sharedWith = doc.shared_with || {};
-                const shareCount = Object.keys(sharedWith).length;
-
-                if (shareCount === 0) {
-                    visibilityCell.textContent = "Private";
-                } else {
-                    visibilityCell.textContent = `Shared (${shareCount})`;
-                }
+                visibilityCell.textContent = doc.visibility || "unknown";
 
                 const actionsCell = document.createElement("td");
                 const actionsDiv = document.createElement("div");

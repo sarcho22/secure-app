@@ -47,7 +47,6 @@ def validate_password_strength(password):
 
 def validate_email(email):
     # email FORMAT
-    # check for duplicate email
     pattern = re.compile(r'[a-zA-Z0-9]+([._%+-][a-zA-Z0-9]+)*@' # local part cant begin/end with special char
                          r'[a-zA-Z0-9]+([\-][a-zA-Z0-9]+)*' # domain can have hyphen
                          r'(\.[a-zA-Z0-9]+([\-][a-zA-Z0-9]+)*)*' # subdomain
