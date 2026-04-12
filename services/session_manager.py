@@ -2,12 +2,10 @@
 Handles session creation, validation, and expiration.
 """
 
-import secrets
-import time
+import secrets, time, config, hashlib
 
 from flask import request
 from services.storage import load_json, save_json
-import config
 
 
 class SessionManager:
@@ -29,14 +27,17 @@ class SessionManager:
         if forwarded_for:
             return forwarded_for.split(",")[0].strip()
         return request.remote_addr or "unknown"
+    
+    def hash_token(self, token):
+        return hashlib.sha256(token.encode()).hexdigest()
 
     def create_session(self, username):
         self.remove_all_expired_sessions()
         # generate session ID
         token = secrets.token_urlsafe(32)
+        token_hash = self.hash_token(token)
 
         session = {
-            'token': token,
             'username': username,
             'created_at': time.time(),
             'last_activity': time.time(),
@@ -45,15 +46,16 @@ class SessionManager:
         }
 
         sessions = self.load_sessions()
-        sessions[token] = session
+        sessions[token_hash] = session
         self.save_sessions(sessions)
 
         return token
 
     def validate_session(self, token):
         sessions = self.load_sessions()
+        token_hash = self.hash_token(token)
 
-        session = sessions.get(token)
+        session = sessions.get(token_hash)
         if not session:
             return None
         
@@ -73,7 +75,7 @@ class SessionManager:
             return None
         
         session['last_activity'] = time.time()
-        sessions[token] = session
+        sessions[token_hash] = session
         self.save_sessions(sessions)
 
         return session
@@ -81,8 +83,10 @@ class SessionManager:
 
     def destroy_session(self, token):
         sessions = self.load_sessions()
-        if token in sessions:
-            del sessions[token]
+        token_hash = self.hash_token(token)
+
+        if token_hash in sessions:
+            del sessions[token_hash]
             self.save_sessions(sessions)
 
     def remove_all_expired_sessions(self):
