@@ -170,7 +170,8 @@ def forgot_password():
         security_logger.log_event(
             event_type="PASSWORD_RESET_REQUEST",
             user_id=reset_info["username"],
-            details="Password reset request suppressed due to cooldown"
+            details="Password reset request suppressed due to cooldown",
+            severity="WARNING"
         )
 
     if reset_info is not None and not reset_info.get("cooldown", False):

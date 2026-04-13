@@ -1,5 +1,14 @@
 {
     "users": [
-        
+        {
+            "username": "testuser",
+            "email_hash": "d3b42d2cbdd4fe60efaa8b3ebd18c98d95d4a1e7db2d5e3c270d93e8ab65a979",
+            "email_encrypted": "gAAAAABp3SJPnICi-fjiqTf6Nnb75KsQuz7tCIAs955RUQhmj1D2x0y43tEgdpYgtXffMJy7oxeeam6b3wZdT6T2xLi9OFK0s3aC8KVrEHNrnAb-LgJFfMY=",
+            "password_hash": "$2b$12$7DecnTzxPcc/9U4XWW5ZKucruhenFE6KgIcSzl.E9x0Fih0zGSFpC",
+            "created_at": 1776099919.6503367,
+            "role": "user",
+            "failed_attempts": 0,
+            "locked_until": null
+        }
     ]
 }

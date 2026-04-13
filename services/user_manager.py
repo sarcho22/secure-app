@@ -182,7 +182,7 @@ def create_password_reset_token(email):
     return {
         "username": user["username"],
         "email": get_user_email(user),
-        "token": raw_token,
+        "token": raw_token, # hmmm maybe this should be encrypted
         "cooldown": False
     }
 

@@ -333,6 +333,7 @@ class DocumentManager:
             shared_with = doc.get("shared_with", {})
             info = shared_with.get(username)
 
+            # should owners be demoted too?
             if info and info.get("role") == "editor":
                 shared_with[username]["role"] = "viewer"
                 doc["updated_at"] = time.time()

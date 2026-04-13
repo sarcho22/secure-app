@@ -1,5 +1,14 @@
 {
     "documents": [
-        
+        {
+            "doc_id": "Pt6PZEZMHJakrJpiuDD3VQ",
+            "owner": "testuser",
+            "filename": "know.png",
+            "encrypted_path": "c:\\Users\\schoi\\OneDrive\\Documents\\GitHub\\secure-app\\data\\docs\\Pt6PZEZMHJakrJpiuDD3VQ.enc",
+            "version": 1,
+            "created_at": 1776100120.4586263,
+            "updated_at": 1776100120.4586265,
+            "shared_with": {}
+        }
     ]
 }
