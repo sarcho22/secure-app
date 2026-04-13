@@ -1,9 +1,6 @@
-import logging
+import logging, json, os
 from flask import request
-import json
 from datetime import datetime
-import os
-
 class SecurityLogger:
     def __init__(self, log_file='logs/security.log'):
         self.log_file = log_file

@@ -1,8 +1,6 @@
-import logging
+import logging, json, os
 from flask import request
-import json
 from datetime import datetime
-import os
 
 
 class AccessLogger:
