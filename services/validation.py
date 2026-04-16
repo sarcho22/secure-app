@@ -2,7 +2,6 @@
 Input validation and sanitization helpers.
 whitelist validation (allow known good, not block known bad)
 length limits on all inputs
-type checking (integers, emails, URLs)
 sanitize file uploads (check extensions, MIME types, scan for malware)
 """
 
@@ -54,6 +53,9 @@ def validate_password_strength(password):
     return True
 
 def validate_email(email):
+    if len(email) > 254:
+        return False
+    
     # email FORMAT
     pattern = re.compile(r'[a-zA-Z0-9]+([._%+-][a-zA-Z0-9]+)*@' # local part cant begin/end with special char
                          r'[a-zA-Z0-9]+([\-][a-zA-Z0-9]+)*' # domain can have hyphen
@@ -71,7 +73,7 @@ def sanitize_output(data):
 
 def safe_filename(filename):
     # remove path traversal attempts
-    if(len(filename) > 255):
+    if len(filename) > 255:
         raise ValueError("Filename too long")
     filename = os.path.basename(filename)
     filename = secure_filename(filename)
@@ -100,14 +102,8 @@ def allowed_file(filename):
 def allowed_mime_type(mime_type):
     return mime_type in ALLOWED_MIME_TYPES
 
-
+# for text files, filter out binary files disguised with .txt extension
 def is_likely_text_file(file_stream, sample_size=512):
-    """
-    Basic heuristic for text files:
-    - Reads a small chunk
-    - Rejects if it contains null bytes
-    - Rejects if it cannot decode as UTF-8
-    """
     file_stream.seek(0)
     chunk = file_stream.read(sample_size)
     file_stream.seek(0)
@@ -121,11 +117,8 @@ def is_likely_text_file(file_stream, sample_size=512):
     except UnicodeDecodeError:
         return False
 
+# check magic bytes for non-text files, and for text files check if they are likely text (not binary disguised as .txt)
 def matches_file_signature(file_stream, filename):
-    """
-    Check whether uploaded file content matches expected magic bytes
-    for its extension.
-    """
     ext = filename.rsplit(".", 1)[1].lower()
 
     file_stream.seek(0)
@@ -139,12 +132,11 @@ def matches_file_signature(file_stream, filename):
     valid_signatures = FILE_SIGNATURES.get(ext, [])
     return any(header.startswith(sig) for sig in valid_signatures)
 
-
+# very basic scan for suspicious content patterns... 
+# not real antivirus / malware detection... 
+# only checks for few known strings in first 4096 bytes... 
+# implemented with chatgpt
 def scan_for_known_bad_signatures(file_stream):
-    """
-    Very basic demo malware/content signature scan.
-    This is NOT real antivirus protection.
-    """
     suspicious_patterns = [
         b"<script>",
         b"<?php",

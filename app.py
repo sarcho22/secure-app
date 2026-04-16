@@ -564,6 +564,24 @@ def replace_document():
         )
         return jsonify({"error": "Invalid file type"}), 400
 
+    if not matches_file_signature(file.stream, file.filename):
+        security_logger.log_event(
+            event_type="INPUT_VALIDATION_FAILURE",
+            user_id=request.user["username"],
+            details=f"Upload failed: file signature does not match expected for {file.filename}",
+            severity="CRITICAL"
+        )
+        return jsonify({"error": "File content does not match expected type"}), 400
+    
+    if not scan_for_known_bad_signatures(file.stream):
+        security_logger.log_event(
+            event_type="INPUT_VALIDATION_FAILURE",
+            user_id=request.user["username"],
+            details=f"Upload failed: suspicious content detected in {file.filename}",
+            severity="CRITICAL"
+        )
+        return jsonify({"error": "Suspicious file content detected"}), 400
+
     doc_id = request.form.get("doc_id", "").strip()
 
     result = document_manager.replace_file(request.user["username"], doc_id, file)
