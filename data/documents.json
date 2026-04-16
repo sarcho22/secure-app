@@ -1,13 +1,13 @@
 {
     "documents": [
         {
-            "doc_id": "Pt6PZEZMHJakrJpiuDD3VQ",
+            "doc_id": "ux3v3OB1T3QN5buGCirCkw",
             "owner": "testuser",
-            "filename": "know.png",
-            "encrypted_path": "c:\\Users\\schoi\\OneDrive\\Documents\\GitHub\\secure-app\\data\\docs\\Pt6PZEZMHJakrJpiuDD3VQ.enc",
+            "filename": "image_2026-03-30_203510261_1.png",
+            "encrypted_path": "/Users/sarahchoi/Downloads/secure-app/secure-app/data/docs/ux3v3OB1T3QN5buGCirCkw.enc",
             "version": 1,
-            "created_at": 1776100120.4586263,
-            "updated_at": 1776100120.4586265,
+            "created_at": 1776126232.647142,
+            "updated_at": 1776126232.647143,
             "shared_with": {}
         }
     ]

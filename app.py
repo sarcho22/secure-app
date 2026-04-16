@@ -4,7 +4,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from services.storage import save_json, load_json
 from services.user_manager import get_user_email, register_user, authenticate_user, get_all_users, promote_user, demote_user, create_password_reset_token, reset_password_with_token
-from services.validation import validate_password_strength, allowed_file, allowed_mime_type
+from services.validation import validate_password_strength, allowed_file, allowed_mime_type, matches_file_signature, scan_for_known_bad_signatures
 from services.security_logger import SecurityLogger
 from services.access_logger import AccessLogger
 from services.session_manager import SessionManager
@@ -428,6 +428,24 @@ def upload():
             severity="ERROR"
         )
         return jsonify({"error": "Invalid file type"}), 400
+
+    if not matches_file_signature(file.stream, file.filename):
+        security_logger.log_event(
+            event_type="INPUT_VALIDATION_FAILURE",
+            user_id=request.user["username"],
+            details=f"Upload failed: file signature does not match expected for {file.filename}",
+            severity="CRITICAL"
+        )
+        return jsonify({"error": "File content does not match expected type"}), 400
+    
+    if not scan_for_known_bad_signatures(file.stream):
+        security_logger.log_event(
+            event_type="INPUT_VALIDATION_FAILURE",
+            user_id=request.user["username"],
+            details=f"Upload failed: suspicious content detected in {file.filename}",
+            severity="CRITICAL"
+        )
+        return jsonify({"error": "Suspicious file content detected"}), 400
 
     result = document_manager.upload_file(request.user["username"], file)
 

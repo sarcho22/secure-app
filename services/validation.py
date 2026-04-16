@@ -18,6 +18,14 @@ ALLOWED_MIME_TYPES = {
     "image/png",
     "image/jpeg"
 }
+# Expected starting bytes ("magic bytes") for allowed file types
+FILE_SIGNATURES = {
+    "pdf": [b"%PDF-"],
+    "png": [b"\x89PNG\r\n\x1a\n"],
+    "jpg": [b"\xff\xd8\xff"],
+    "jpeg": [b"\xff\xd8\xff"],
+    "txt": []  # no reliable universal magic bytes for plain text
+}
 
 def validate_username(username):
     # 3-20 chars, alphanumeric + underscore
@@ -91,3 +99,62 @@ def allowed_file(filename):
 
 def allowed_mime_type(mime_type):
     return mime_type in ALLOWED_MIME_TYPES
+
+
+def is_likely_text_file(file_stream, sample_size=512):
+    """
+    Basic heuristic for text files:
+    - Reads a small chunk
+    - Rejects if it contains null bytes
+    - Rejects if it cannot decode as UTF-8
+    """
+    file_stream.seek(0)
+    chunk = file_stream.read(sample_size)
+    file_stream.seek(0)
+
+    if b"\x00" in chunk:
+        return False
+
+    try:
+        chunk.decode("utf-8")
+        return True
+    except UnicodeDecodeError:
+        return False
+
+def matches_file_signature(file_stream, filename):
+    """
+    Check whether uploaded file content matches expected magic bytes
+    for its extension.
+    """
+    ext = filename.rsplit(".", 1)[1].lower()
+
+    file_stream.seek(0)
+    header = file_stream.read(16)
+    file_stream.seek(0)
+
+    # txt handled separately
+    if ext == "txt":
+        return is_likely_text_file(file_stream)
+
+    valid_signatures = FILE_SIGNATURES.get(ext, [])
+    return any(header.startswith(sig) for sig in valid_signatures)
+
+
+def scan_for_known_bad_signatures(file_stream):
+    """
+    Very basic demo malware/content signature scan.
+    This is NOT real antivirus protection.
+    """
+    suspicious_patterns = [
+        b"<script>",
+        b"<?php",
+        b"powershell",
+        b"cmd.exe",
+        b"/bin/sh"
+    ]
+
+    file_stream.seek(0)
+    content = file_stream.read(4096).lower()
+    file_stream.seek(0)
+
+    return not any(pattern in content for pattern in suspicious_patterns)
