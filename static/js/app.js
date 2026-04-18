@@ -16,12 +16,19 @@ function setupLoginForm() {
     const loginForm = document.getElementById("loginForm");
     if (!loginForm) return;
 
+    const messageBox = document.getElementById("error");
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("registered") === "1") {
+        showMessage(messageBox, "Registration successful. Please log in.", "success");
+
+        window.history.replaceState({}, document.title, "/login-page");
+    }
+
     loginForm.addEventListener("submit", async (e) => {
         e.preventDefault();
 
         const username = getValue("username");
         const password = getValue("password");
-        const messageBox = getMessageElement(["error", "loginMessage"]);
 
         clearMessage(messageBox);
 
@@ -85,7 +92,8 @@ function setupRegisterForm() {
             const data = await parseJsonSafely(res);
 
             if (res.ok) {
-                window.location.href = "/login-page";
+                window.location.href = "/login-page?registered=1";
+                return;
             } else {
                 showMessage(messageBox, data.error || "Registration failed.", "error");
             }
@@ -743,7 +751,7 @@ function clearMessage(element) {
     }
 
     if (element.id === "error" || element.id === "uploadMessage") {
-        element.style.color = "red";
+        element.style.color = "";
     }
 }
 
