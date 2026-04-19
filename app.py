@@ -642,7 +642,7 @@ def share_document():
                 severity="WARNING"
             )
             # dont let them know it exists
-            return jsonify({"error": "Document not found"}), 404
+            return jsonify({"error": "Forbidden"}), 403
         security_logger.log_event(
             event_type="INPUT_VALIDATION_FAILURE",
             user_id=request.user["username"],
@@ -688,8 +688,7 @@ def unshare_document():
                 details=f"Unauthorized unshare attempt for document {doc_id}",
                 severity="WARNING"
             )
-            # dont let them know doc exists
-            return jsonify({"error": "Document not found"}), 404
+            return jsonify({"error": "Forbidden"}), 403
         security_logger.log_event(
             event_type="INPUT_VALIDATION_FAILURE",
             user_id=request.user["username"],
@@ -730,8 +729,7 @@ def list_shares(doc_id):
             details=f"Unauthorized share list access for document {doc_id}",
             severity="WARNING"
         )
-        # dont let them know doc exists
-        return jsonify({"error": "Document not found"}), 404
+        return jsonify({"error": "Forbidden"}), 403
 
     access_logger.log_event(
         event_type="ACL_READ",
@@ -763,8 +761,7 @@ def delete_document(doc_id):
             details=f"Unauthorized delete attempt for document {doc_id}",
             severity="WARNING"
         )
-        # dont let them know it exists
-        return jsonify({"error": "Document not found"}), 404
+        return jsonify({"error": "Forbidden"}), 403
 
     access_logger.log_event(
         event_type="DATA_DELETE",

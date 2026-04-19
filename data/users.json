@@ -1,5 +1,54 @@
 {
     "users": [
-        
+        {
+            "username": "guest1",
+            "email_hash": "4fea04c31b015cad662b90903a32d4837266834ed9edd8fc8875d194aab37abd",
+            "email_encrypted": "gAAAAABp5P20ivyqeUkZkaL-ucJ5tLYcabRC2Wlci24VPs6Tp5FlpP8qt_NgCQWp7gC8keu6mHeTkoQkoSVSDrFZdy3Zo6TzCzCFKydHkv6TF5TKWB8keEU=",
+            "password_hash": "$2b$12$ycPECca.5M3WMPAJJCD3Leh0fo0veyhztIsh8TnU.F/GJJbLdzWcq",
+            "created_at": 1776614836.433985,
+            "role": "guest",
+            "failed_attempts": 0,
+            "locked_until": null
+        },
+        {
+            "username": "testuser1",
+            "email_hash": "f5f234e6b4028f68a41cf0a3491af8c8179f851d3906cd8bca8d63c91d831a59",
+            "email_encrypted": "gAAAAABp5P3DO5IgAaKye7QOfBtzT9RrZ-93S6j255SRb2U0EiT2gMt09wNCR66gY_8kX2Vl8J3za6Ja8H7VICzSFFepBtOpTnTGmX1kT6xlVfUpeXbMY4g=",
+            "password_hash": "$2b$12$XwCcB6l1TyTpHnpKdu3bLuJEQ8crVf6xnFP32.im6hVLp2Zu8h3g2",
+            "created_at": 1776614851.640008,
+            "role": "user",
+            "failed_attempts": 0,
+            "locked_until": null
+        },
+        {
+            "username": "testuser2",
+            "email_hash": "62f62c6750fb1e3648ada4f52eae0d3311ee63831864f834de13fa8c56262aac",
+            "email_encrypted": "gAAAAABp5P3PNGXaaJAyD0Gvj4VpqatFIIk9yb3VLstYQequc7-H7dgoCJwJ-h8e4Gi9xYqZz14aV9RwEdDspoMSI6gCQeeyBLdSV9CXI9r3r4FWSuTMrgA=",
+            "password_hash": "$2b$12$L3nJ4QRcgUwDg1SC.5bxbu1QVOHfTuzRR65P3EVGCOkADBYtRmx7W",
+            "created_at": 1776614863.0650828,
+            "role": "user",
+            "failed_attempts": 0,
+            "locked_until": null
+        },
+        {
+            "username": "testuser3",
+            "email_hash": "f5d9bff7e9f17cca6535ebdc2c2d0ea5f559d9cb91dba24a6e8f32d91aa13b4a",
+            "email_encrypted": "gAAAAABp5P3bUFrMusDJulK2Cwdae9iY9V0T97NClsHyDFfT79JI5QzTwggmabTQu1OsxSdW_MdtashBDRwA10M8UNRepoet7-OBXpeAtsSCgRmoeHeIWSA=",
+            "password_hash": "$2b$12$aLOm0GOqygOvbSjiZAnVvudy52PotyFm.MFjtuutFFTiRfSA6fcL.",
+            "created_at": 1776614875.831431,
+            "role": "user",
+            "failed_attempts": 0,
+            "locked_until": null
+        },
+        {
+            "username": "admin",
+            "email_hash": "258d8dc916db8cea2cafb6c3cd0cb0246efe061421dbd83ec3a350428cabda4f",
+            "email_encrypted": "gAAAAABp5P3qchoaUDIs8-MS33VofFi-bYhg95oOG5_-3B0TnDRWAS5z1XcKfA_jANj0gFJtg1afzN8r3vkBkRz0wVuVKMA3b2mfYX8CqXnfMeSd4IjWLDU=",
+            "password_hash": "$2b$12$BNBE0IetIptQBn4KjJPWBOrJ.VsU/bF0lFmdOwjXzYx2cP07jDiGO",
+            "created_at": 1776614890.120459,
+            "role": "admin",
+            "failed_attempts": 0,
+            "locked_until": null
+        }
     ]
 }
