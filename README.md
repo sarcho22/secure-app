@@ -6,7 +6,11 @@ users, sessions, and docs are cleared before submission so grader can manually t
 
 2. Set environment variables. Blank .env file will be provided. 
 - Password reset email delivery uses SMTP if environment variables are configured. If SMTP is not configured, the application prints the reset link to the terminal for testing purposes.
-- Set secret key for signing sessions / tokens
+- Set secret key for signing sessions / tokens --> in case we ever start using Flask sessions instead of ours
+    `
+    import secrets
+    secrets.token_hex(32)
+    `
 
 3. Generate self-signed certificate  (cert.pem and key.pem)
     `openssl req -x509 -newkey rsa:4096 -nodes -out cert.pem -keyout key.pem -days 365`
