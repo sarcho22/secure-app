@@ -9,6 +9,7 @@ users, sessions, and docs are cleared before submission so grader can manually t
 - Set secret key for signing sessions / tokens
 
 3. Generate self-signed certificate  (cert.pem and key.pem)
+    `openssl req -x509 -newkey rsa:4096 -nodes -out cert.pem -keyout key.pem -days 365`
 
 4. Run the application - Start the app with HTTPS enabled with the following bash command: `python app.py` 
 
@@ -23,4 +24,3 @@ users, sessions, and docs are cleared before submission so grader can manually t
 Troubleshooting
 - if port 5000 is in use, change it in app.py
 - if HTTPS fails, ensure cert.pem and key.pem exist
-- if login issues occur, clear sessions.js
