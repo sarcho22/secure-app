@@ -1,23 +1,5 @@
 {
     "documents": [
-        {
-            "doc_id": "ilrkdV86sK2EPR_x2wtp-A",
-            "owner": "testuser1",
-            "filename": "stonks.png",
-            "encrypted_path": "/Users/sarahchoi/Downloads/secure-app/secure-app/data/docs/ilrkdV86sK2EPR_x2wtp-A.enc",
-            "version": 2,
-            "created_at": 1776614964.594887,
-            "updated_at": 1776615540.7564318,
-            "shared_with": {
-                "testuser3": {
-                    "role": "viewer",
-                    "shared_at": 1776614975.849431
-                },
-                "guest1": {
-                    "role": "viewer",
-                    "shared_at": 1776614980.4153118
-                }
-            }
-        }
+        
     ]
 }
